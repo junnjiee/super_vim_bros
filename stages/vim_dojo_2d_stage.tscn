@@ -43,3 +43,8 @@ editor_draw_drag_margin = true
 [node name="CharacterBody2D2" parent="." instance=ExtResource("2_4t1fw")]
 position = Vector2(500, 0)
 collision_mask = 2
+
+[node name="CharacterBody2D1" parent="." instance=ExtResource("2_4t1fw")]
+position = Vector2(1000, 0)
+collision_mask = 2
+input_enabled = false
