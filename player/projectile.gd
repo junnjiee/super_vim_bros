@@ -26,10 +26,22 @@ func _physics_process(delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	# Deal damage if it's a player and not the owner
 	if body.has_method("apply_damage") and body != owner_player:
-		if multiplayer.multiplayer_peer == null:
-			body.apply_damage(3)
-		elif multiplayer.is_server() and body.has_method("network_apply_damage"):
-			body.network_apply_damage.rpc(3)
+		if multiplayer.multiplayer_peer == null or is_multiplayer_authority():
+			_apply_damage_to_target(body, 3)
 
 	# Destroy projectile on any collision
 	queue_free()
+
+
+func _apply_damage_to_target(body: Node2D, amount: int) -> void:
+	if not body.has_method("apply_damage"):
+		return
+	if multiplayer.multiplayer_peer == null:
+		body.apply_damage(amount)
+		return
+	var target_id = body.get_multiplayer_authority()
+	if target_id == multiplayer.get_unique_id():
+		body.apply_damage(amount)
+		return
+	if body.has_method("network_apply_damage"):
+		body.network_apply_damage.rpc_id(target_id, amount)

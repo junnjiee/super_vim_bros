@@ -786,6 +786,8 @@ func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
 
 func _spawn_projectile_local(direction: Vector2, spawn_pos: Vector2) -> void:
 	var projectile = PROJECTILE_SCENE.instantiate()
+	if multiplayer.multiplayer_peer != null:
+		projectile.set_multiplayer_authority(get_multiplayer_authority(), true)
 	projectile.initialize(direction, self)
 	projectile.global_position = spawn_pos
 	get_parent().add_child(projectile)
@@ -818,7 +820,7 @@ func apply_damage(amount: int) -> void:
 	change_state(State.HITSTUN)
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("any_peer", "reliable")
 func network_apply_damage(amount: int):
 	apply_damage(amount)
 
@@ -927,15 +929,9 @@ func _start_death_cleanup() -> void:
 func _on_attack_hitbox_body_entered(body: Node) -> void:
 	if body == self:
 		return
-	# Check if we should handle damage locally
-	if multiplayer.multiplayer_peer == null:
-		# Singleplayer mode - apply damage directly
-		if body.has_method("apply_damage"):
-			body.apply_damage(10)
-	elif multiplayer.is_server():
-		# Multiplayer mode - use RPC
-		if body.has_method("network_apply_damage"):
-			body.network_apply_damage.rpc(10)
+	if not _is_local_authority():
+		return
+	_apply_damage_to_target(body, 10)
 
 
 func _show_damage_number(amount: int) -> void:
@@ -952,6 +948,20 @@ func _show_damage_number(amount: int) -> void:
 	tween.tween_property(label, "position", start_pos + Vector2(0, -dash_unit_size * 0.5), 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(label, "modulate:a", 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.finished.connect(label.queue_free)
+
+
+func _apply_damage_to_target(body: Node, amount: int) -> void:
+	if not body.has_method("apply_damage"):
+		return
+	if multiplayer.multiplayer_peer == null:
+		body.apply_damage(amount)
+		return
+	var target_id = body.get_multiplayer_authority()
+	if target_id == multiplayer.get_unique_id():
+		body.apply_damage(amount)
+		return
+	if body.has_method("network_apply_damage"):
+		body.network_apply_damage.rpc_id(target_id, amount)
 
 
 # === INSERT MODE OBSTACLE FUNCTIONS ===
