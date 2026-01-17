@@ -27,42 +27,53 @@ func _on_player_connected(peer_id: int):
 		push_error("Player scene not set in PlayerSpawner")
 		return
 
-	# Instantiate the player
-	var player = player_scene.instantiate()
-
 	# Determine spawn point based on peer ID
 	# Server (ID 1) spawns at left, client spawns at right
 	var spawn_point: Node2D
 	if peer_id == 1:
-		spawn_point = get_node(spawn_point_1)
+		spawn_point = get_node(spawn_point_1) as Node2D
 	else:
-		spawn_point = get_node(spawn_point_2)
+		spawn_point = get_node(spawn_point_2) as Node2D
 
 	if not spawn_point:
 		push_error("Spawn point not found")
-		player.queue_free()
 		return
 
-	# Set player position
-	player.global_position = spawn_point.global_position
-
-	# Set multiplayer authority to the peer
-	player.set_multiplayer_authority(peer_id)
-
-	# Add to scene
-	get_parent().add_child(player)
-
-	# Track the spawned player
-	spawned_players[peer_id] = player
-
-	print("Player spawned for peer ", peer_id, " at ", spawn_point.global_position)
+	_spawn_player.rpc(peer_id, spawn_point.global_position)
 
 
 func _on_player_disconnected(peer_id: int):
-	# Remove the player when they disconnect
+	# Only server handles despawning
+	if not multiplayer.is_server():
+		return
+
+	_despawn_player.rpc(peer_id)
+
+
+@rpc("authority", "call_local", "reliable")
+func _spawn_player(peer_id: int, spawn_position: Vector2) -> void:
 	if spawned_players.has(peer_id):
-		var player = spawned_players[peer_id]
-		if is_instance_valid(player):
-			player.queue_free()
-		spawned_players.erase(peer_id)
-		print("Player removed for peer ", peer_id)
+		return
+
+	if not player_scene:
+		push_error("Player scene not set in PlayerSpawner")
+		return
+
+	var player = player_scene.instantiate()
+	player.global_position = spawn_position
+	player.set_multiplayer_authority(peer_id)
+	get_parent().add_child(player)
+	spawned_players[peer_id] = player
+	print("Player spawned for peer ", peer_id, " at ", spawn_position)
+
+
+@rpc("authority", "call_local", "reliable")
+func _despawn_player(peer_id: int) -> void:
+	if not spawned_players.has(peer_id):
+		return
+
+	var player = spawned_players[peer_id]
+	if is_instance_valid(player):
+		player.queue_free()
+	spawned_players.erase(peer_id)
+	print("Player removed for peer ", peer_id)
