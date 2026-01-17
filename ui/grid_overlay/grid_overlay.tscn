@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8j3k4l5m6n7o8p9"]
+
+[ext_resource type="Script" path="res://ui/grid_overlay/grid_overlay.gd" id="1_grid"]
+
+[node name="GridOverlay" type="Node2D"]
+script = ExtResource("1_grid")

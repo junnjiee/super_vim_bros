@@ -7,6 +7,7 @@ enum State {
 	ATTACK,
 	HITSTUN,
 	DEATH,
+	DASH,
 }
 
 @export var speed: float = 200.0
@@ -16,6 +17,8 @@ enum State {
 @export var attack_time := 0.2
 @export var input_buffer_time := 0.25
 @export var input_enabled := true
+@export var dash_speed: float = 800.0
+@export var dash_unit_size: int = 64
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
@@ -34,6 +37,15 @@ var attack_animation := "attack_dir"
 var neutral_combo_step := 0
 var neutral_combo_timer := 0.0
 var hitbox_offset := Vector2.ZERO
+
+# Count input buffering
+var pending_count: String = ""
+var pending_count_timer: float = 0.0
+
+# Dash tracking
+var dash_target: Vector2 = Vector2.ZERO
+var dash_direction: Vector2 = Vector2.ZERO
+var dash_remaining_time: float = 0.0
 
 signal health_changed(current: int, max: int)
 signal died
@@ -65,8 +77,14 @@ func _physics_process(delta):
 		if pending_d_timer <= 0.0:
 			pending_d = false
 
-	# Apply vertical physics every frame
-	if not is_on_floor():
+	# Count buffer timeout
+	if pending_count_timer > 0.0:
+		pending_count_timer -= delta
+		if pending_count_timer <= 0.0:
+			pending_count = ""
+
+	# Apply vertical physics every frame (skip during horizontal dash)
+	if not is_on_floor() and not (current_state == State.DASH and dash_direction.x != 0):
 		velocity.y += gravity * delta
 	if input_enabled and is_on_floor() and Input.is_key_pressed(KEY_K):
 		velocity.y = -jump_force
@@ -83,7 +101,9 @@ func _physics_process(delta):
 			state_hitstun(delta)
 		State.DEATH:
 			state_death(delta)
-	
+		State.DASH:
+			state_dash(delta)
+
 	# Apply movement/gravity
 	move_and_slide()
 
@@ -132,6 +152,8 @@ func enter_state(state: State):
 			if attack_hitbox:
 				attack_hitbox.monitoring = false
 			_start_death_cleanup()
+		State.DASH:
+			animated_sprite.play("walk")  # Use walk animation for dashing
 
 
 func exit_state(state: State):
@@ -147,6 +169,8 @@ func exit_state(state: State):
 			pass
 		State.DEATH:
 			pass
+		State.DASH:
+			pass  # Nothing to clean up
 
 
 # === STATE LOGIC ===
@@ -172,7 +196,7 @@ func state_walk(_delta):
 		attack_requested = false
 		change_state(State.ATTACK)
 		return
-	
+
 	# No input? Go back to idle
 	if direction == Vector2.ZERO:
 		velocity.x = 0.0
@@ -203,6 +227,23 @@ func state_hitstun(_delta):
 
 func state_death(_delta):
 	velocity = Vector2.ZERO
+
+
+func state_dash(delta):
+	dash_remaining_time -= delta
+
+	# Set velocity for collision detection via move_and_slide()
+	if dash_direction.y != 0:
+		velocity.y = dash_direction.y * dash_speed
+		velocity.x = 0
+	else:
+		velocity.x = dash_direction.x * dash_speed
+		velocity.y = 0  # Suspend gravity during horizontal dash
+
+	# End conditions
+	if dash_remaining_time <= 0 or is_on_wall():
+		velocity = Vector2.ZERO
+		change_state(State.IDLE)
 
 
 # === HELPER FUNCTIONS ===
@@ -238,6 +279,36 @@ func _input(event) -> void:
 
 	var code = event.keycode
 
+	# Number key detection for count buffering
+	if code >= KEY_0 and code <= KEY_9:
+		# Only accumulate if we haven't reached 2 digits
+		if pending_count.length() < 2:
+			var digit = code - KEY_0
+			pending_count += str(digit)
+			pending_count_timer = input_buffer_time
+		return
+
+	# Movement key detection with count
+	if pending_count != "":
+		var count = int(pending_count)
+		if count > 0:
+			if code == KEY_H:
+				_initiate_dash(Vector2.LEFT, count, false)
+				pending_count = ""
+				return
+			elif code == KEY_L:
+				_initiate_dash(Vector2.RIGHT, count, false)
+				pending_count = ""
+				return
+			elif code == KEY_J:
+				_initiate_dash(Vector2.DOWN, count, true)
+				pending_count = ""
+				return
+			elif code == KEY_K:
+				_initiate_dash(Vector2.UP, count, true)
+				pending_count = ""
+				return
+
 	# Neutral attack: "dd"
 	if code == KEY_D:
 		if pending_d and pending_d_timer > 0.0:
@@ -270,6 +341,54 @@ func _input(event) -> void:
 			neutral_combo_timer = 0.0
 			attack_requested = true
 			return
+
+	# Vim movement: 'w' = forward (right) 5 tiles, 'b' = backward (left) 5 tiles
+	if code == KEY_W:
+		_initiate_dash(Vector2.RIGHT, 5, false)
+		return
+	if code == KEY_B:
+		_initiate_dash(Vector2.LEFT, 5, false)
+		return
+
+
+func _initiate_dash(direction: Vector2, count: int, is_vertical: bool):
+	# Calculate target position based on relative grid numbering
+	var target = global_position
+
+	if is_vertical:
+		# Vertical movement: teleport to count grids up/down
+		var current_row = round(global_position.y / dash_unit_size)
+		var target_row = current_row + (count * int(direction.y))
+		target.y = target_row * dash_unit_size
+	else:
+		# Horizontal movement: teleport to count grids left/right
+		var current_col = round(global_position.x / dash_unit_size)
+		var target_col = current_col + (count * int(direction.x))
+		target.x = target_col * dash_unit_size
+
+	# Test for collision at target position
+	var original_pos = global_position
+	global_position = target
+
+	# Use move_and_collide to check for collisions
+	var test_motion = PhysicsTestMotionParameters2D.new()
+	test_motion.from = PhysicsServer2D.body_get_state(get_rid(), PhysicsServer2D.BODY_STATE_TRANSFORM)
+	test_motion.motion = Vector2.ZERO
+
+	var result = PhysicsTestMotionResult2D.new()
+	var collision = PhysicsServer2D.body_test_motion(get_rid(), test_motion, result)
+
+	if collision:
+		# Collision detected, revert to original position
+		global_position = original_pos
+		print("Cannot teleport: collision at target position")
+	else:
+		# No collision, teleport successful
+		print("Teleported to: ", global_position)
+
+		# Flip sprite based on horizontal movement
+		if direction.x != 0:
+			animated_sprite.flip_h = direction.x < 0
 
 
 func apply_damage(amount: int) -> void:

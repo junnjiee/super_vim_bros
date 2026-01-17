@@ -1,10 +1,14 @@
-[gd_scene load_steps=4 format=3 uid="uid://djsjomcvsu7ov"]
+[gd_scene load_steps=5 format=3 uid="uid://djsjomcvsu7ov"]
 
 [ext_resource type="Texture2D" uid="uid://ji03rsx4sfxj" path="res://stages/prototype_stage_final.png" id="1_jcl3n"]
 [ext_resource type="PackedScene" uid="uid://c1sysexv5j6v0" path="res://player/player.tscn" id="2_4t1fw"]
 [ext_resource type="PackedScene" path="res://ui/relative_line_numbers/relative_line_numbers.tscn" id="3_relative_numbers"]
+[ext_resource type="PackedScene" uid="uid://c8j3k4l5m6n7o8p9" path="res://ui/grid_overlay/grid_overlay.tscn" id="4_grid"]
 
 [node name="Node 2D" type="Node2D"]
+
+[node name="GridOverlay" parent="." instance=ExtResource("4_grid")]
+camera = NodePath("../Camera2D")
 
 [node name="PrototypeStageFinal" type="Sprite2D" parent="."]
 position = Vector2(960, 540)

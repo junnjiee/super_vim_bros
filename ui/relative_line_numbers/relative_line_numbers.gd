@@ -93,7 +93,7 @@ func _process(_delta):
 		var label = label_pool[label_index]
 		label.position = Vector2(
 			0,
-			i * row_height - camera_row_offset + (-30) - (label.size.y / 2.0)
+			i * row_height - camera_row_offset + (row_height / 2.0) - (label.size.y / 2.0)
 		)
 
 		# Set text and color based on relative distance
