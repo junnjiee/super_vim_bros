@@ -250,8 +250,6 @@ func state_dash(delta):
 
 func get_input_direction(delta) -> Vector2:
 	var direction = Vector2.ZERO
-	if not is_multiplayer_authority():
-		return Vector2.ZERO
 	if not input_enabled:
 		return direction
 	if Input.is_key_pressed(KEY_H):
@@ -270,8 +268,6 @@ func _update_hitbox_side() -> void:
 
 
 func _input(event) -> void:
-	if not is_multiplayer_authority():
-		return
 	if not input_enabled:
 		return
 	if not (event is InputEventKey):
@@ -409,11 +405,6 @@ func apply_damage(amount: int) -> void:
 	change_state(State.HITSTUN)
 
 
-@rpc("authority", "call_local", "reliable")
-func network_apply_damage(amount: int):
-	apply_damage(amount)
-
-
 func _start_hitstun_recovery() -> void:
 	await get_tree().create_timer(invuln_time).timeout
 	invulnerable = false
@@ -442,10 +433,7 @@ func _on_attack_hitbox_body_entered(body: Node) -> void:
 		return
 	if body == self:
 		return
-	# Only server calculates damage
-	if not multiplayer.is_server():
-		return
-	if body.has_method("network_apply_damage"):
-		body.network_apply_damage.rpc(10)
+	if body.has_method("apply_damage"):
+		body.apply_damage(10)
 
 		

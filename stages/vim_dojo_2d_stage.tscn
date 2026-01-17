@@ -1,11 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://djsjomcvsu7ov"]
+[gd_scene load_steps=5 format=3 uid="uid://djsjomcvsu7ov"]
 
 [ext_resource type="Texture2D" uid="uid://ji03rsx4sfxj" path="res://stages/prototype_stage_final.png" id="1_jcl3n"]
 [ext_resource type="PackedScene" uid="uid://c1sysexv5j6v0" path="res://player/player.tscn" id="2_4t1fw"]
 [ext_resource type="PackedScene" path="res://ui/relative_line_numbers/relative_line_numbers.tscn" id="3_relative_numbers"]
 [ext_resource type="PackedScene" uid="uid://c8j3k4l5m6n7o8p9" path="res://ui/grid_overlay/grid_overlay.tscn" id="4_grid"]
-[ext_resource type="Script" path="res://stages/player_spawner.gd" id="5_spawner"]
-[ext_resource type="PackedScene" uid="uid://cskj5yqt1mpv1" path="res://ui/lobby/lobby_ui.tscn" id="6_lobby"]
 
 [node name="Node 2D" type="Node2D"]
 
@@ -49,16 +47,6 @@ drag_right_margin = 0.0
 editor_draw_limits = true
 editor_draw_drag_margin = true
 
-[node name="SpawnPoint1" type="Marker2D" parent="."]
-position = Vector2(400, 694)
-
-[node name="SpawnPoint2" type="Marker2D" parent="."]
-position = Vector2(1500, 694)
-
-[node name="PlayerSpawner" type="Node" parent="."]
-script = ExtResource("5_spawner")
-player_scene = ExtResource("2_4t1fw")
-spawn_point_1 = NodePath("../SpawnPoint1")
-spawn_point_2 = NodePath("../SpawnPoint2")
-
-[node name="LobbyUI" parent="." instance=ExtResource("6_lobby")]
+[node name="CharacterBody2D2" parent="." instance=ExtResource("2_4t1fw")]
+position = Vector2(635, 694)
+collision_mask = 2

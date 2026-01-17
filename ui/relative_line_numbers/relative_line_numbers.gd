@@ -44,13 +44,7 @@ func _ready():
 
 func _find_player():
 	var players = get_tree().get_nodes_in_group("player")
-	# Find the local player (the one this peer controls)
-	for p in players:
-		if p.is_multiplayer_authority():
-			player = p
-			break
-	# Fallback for single-player
-	if not player and players.size() > 0:
+	if players.size() > 0:
 		player = players[0]
 
 	# Try to find camera
