@@ -62,23 +62,22 @@ func _process(_delta):
 	# Update gutter background height
 	gutter_background.size.y = viewport_size.y
 
-	# Calculate player's current row
+	# Calculate player's current row (which grid cell they're in)
 	var player_row = floor(player.global_position.y / row_height)
 
-	# Calculate viewport vertical range
-	var viewport_top = 0
-	var viewport_bottom = viewport_size.y
-
-	# Calculate how many rows fit in viewport
-	var rows_in_viewport = int(ceil(viewport_size.y / row_height)) + 2  # Extra rows for overscan
-
-	# Calculate starting world row (top of viewport)
-	var camera_offset = 0
+	# Calculate camera viewport bounds
+	var camera_top = 0
+	var zoom_factor = 1.0
 	if camera:
-		camera_offset = camera.get_screen_center_position().y - viewport_size.y / 2
+		var zoom = camera.zoom
+		var visible_height = viewport_size.y / zoom.y
+		camera_top = camera.get_screen_center_position().y - visible_height / 2
+		zoom_factor = zoom.y
 
-	var top_world_row = floor(camera_offset / row_height)
-	var camera_row_offset = camera_offset - (top_world_row * row_height)
+	# Calculate which grid rows are visible
+	# Grid cells: row i spans from (i * row_height) to ((i+1) * row_height)
+	var top_grid_row = floor(camera_top / row_height)
+	var rows_in_viewport = int(ceil(viewport_size.y / (row_height * zoom_factor))) + 2
 
 	# Update labels
 	var label_index = 0
@@ -87,13 +86,19 @@ func _process(_delta):
 		if label_index >= label_pool.size():
 			break
 
-		var world_row = top_world_row + i
+		var world_row = top_grid_row + i
 		var relative_distance = world_row - player_row
+
+		# Calculate center of this grid cell in world coordinates
+		var world_cell_center_y = world_row * row_height + (row_height / 2.0)
+
+		# Convert to screen coordinates
+		var screen_y = (world_cell_center_y - camera_top) * zoom_factor
 
 		var label = label_pool[label_index]
 		label.position = Vector2(
 			0,
-			i * row_height - camera_row_offset + (row_height / 2.0) - (label.size.y / 2.0)
+			screen_y - (label.size.y / 2.0)
 		)
 
 		# Set text and color based on relative distance
