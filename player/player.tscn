@@ -1,4 +1,4 @@
-[gd_scene load_steps=88 format=3 uid="uid://c1sysexv5j6v0"]
+[gd_scene load_steps=91 format=3 uid="uid://c1sysexv5j6v0"]
 
 [ext_resource type="Script" uid="uid://58k02lr4ccy0" path="res://player/statemachine.gd" id="1_g1dw6"]
 [ext_resource type="Texture2D" uid="uid://d2m4jfpo5eu8c" path="res://sprites/character-pack-1/Animations/Walking.png" id="1_oul6g"]
@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://bv8kq30oljbgw" path="res://sprites/character-pack-1/Animations/Jump witn Strike.png" id="3_yllr7"]
 [ext_resource type="Texture2D" uid="uid://bxdnjdx8x1guy" path="res://sprites/character-pack-3/Animations/Stealth_Mode.png" id="3_yw30f"]
 [ext_resource type="Texture2D" uid="uid://cfa5n55rh4p4o" path="res://sprites/character-pack-3/Animations/Teleport_Character_2.png" id="4_2ieo8"]
+[ext_resource type="Texture2D" uid="uid://dgqfla4gbx5vr" path="res://sprites/character-pack-2/Animations/Protect.png" id="4_kb6p2"]
 [ext_resource type="Texture2D" uid="uid://4b7ucq2k1vkn" path="res://sprites/character-pack-2/Animations/Punch_1.png" id="4_rgyib"]
 [ext_resource type="Texture2D" uid="uid://brqe4wckklut4" path="res://sprites/character-pack-1/Animations/Double_Jump.png" id="5_ebec5"]
 [ext_resource type="Texture2D" uid="uid://bfltrdjsvaui4" path="res://sprites/character-pack-2/Animations/Punch_2.png" id="5_hg6s5"]
@@ -49,6 +50,14 @@ region = Rect2(128, 0, 128, 128)
 [sub_resource type="AtlasTexture" id="AtlasTexture_j3r50"]
 atlas = ExtResource("3_yllr7")
 region = Rect2(256, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_utr5e"]
+atlas = ExtResource("4_kb6p2")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kewli"]
+atlas = ExtResource("4_kb6p2")
+region = Rect2(128, 0, 128, 128)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_55jnj"]
 atlas = ExtResource("3_hg6s5")
@@ -323,6 +332,17 @@ animations = [{
 }],
 "loop": false,
 "name": &"attack_jump",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_utr5e")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kewli")
+}],
+"loop": true,
+"name": &"block",
 "speed": 5.0
 }, {
 "frames": [{
@@ -667,7 +687,7 @@ collision_mask = 3
 script = ExtResource("1_g1dw6")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-position = Vector2(0, -32)
+position = Vector2(7, -61)
 scale = Vector2(2, 2)
 sprite_frames = SubResource("SpriteFrames_g1dw6")
 animation = &"walk"
@@ -702,6 +722,11 @@ offset_right = 32.0
 offset_bottom = 64.0
 mouse_filter = 2
 color = Color(0, 1, 0, 0.25)
+
+[node name="BlockBubble" type="Polygon2D" parent="."]
+visible = false
+color = Color(0.2, 0.6, 1, 0.35)
+polygon = PackedVector2Array(0, -64, 45, -45, 64, 0, 45, 45, 0, 64, -45, 45, -64, 0, -45, -45)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
 polygon = PackedVector2Array(-32, -64, 32, -64, 32, 64, -32, 64)

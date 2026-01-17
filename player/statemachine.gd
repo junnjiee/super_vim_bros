@@ -7,6 +7,7 @@ enum State {
 	JUMP,
 	FALL,
 	ATTACK,
+	BLOCK,
 	HITSTUN,
 	DEATH,
 	DASH,
@@ -21,6 +22,7 @@ enum State {
 @export var input_enabled := true
 @export var dash_unit_size: int = 64
 @export var dir_attack_travel_time: float = 0.12
+@export var parry_window_time: float = 0.1
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
@@ -32,6 +34,7 @@ var current_state: State = State.IDLE
 @onready var hitbox_highlight: ColorRect = $AttackHitbox/ColorRect
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 @onready var collision_highlight: ColorRect = $CollisionHighlight
+@onready var block_bubble: Polygon2D = $BlockBubble
 var health: int = max_health
 var invulnerable := false
 var pending_d := false
@@ -44,6 +47,8 @@ var neutral_combo_step := 0
 var neutral_combo_timer := 0.0
 var last_remote_animation: StringName = &""
 var last_remote_flip_h := false
+var block_pressed := false
+var block_start_time_ms := 0
 
 # Count input buffering
 var pending_count: String = ""
@@ -79,6 +84,8 @@ func _ready():
 		collision_highlight.size = box_size
 		collision_highlight.position = -box_size / 2
 		collision_highlight.visible = true
+	if block_bubble:
+		block_bubble.visible = false
 	enter_state(current_state)
 
 
@@ -123,6 +130,8 @@ func _physics_process(delta):
 			state_fall(delta)
 		State.ATTACK:
 			state_attack(delta)
+		State.BLOCK:
+			state_block(delta)
 		State.HITSTUN:
 			state_hitstun(delta)
 		State.DEATH:
@@ -158,6 +167,8 @@ func enter_state(state: State):
 				attack_hitbox.monitoring = false
 			if hitbox_highlight:
 				hitbox_highlight.visible = false
+			if block_bubble:
+				block_bubble.visible = false
 		State.WALK:
 			animated_sprite.play("walk")
 			animated_sprite.speed_scale = 1.0
@@ -165,6 +176,8 @@ func enter_state(state: State):
 				attack_hitbox.monitoring = false
 			if hitbox_highlight:
 				hitbox_highlight.visible = false
+			if block_bubble:
+				block_bubble.visible = false
 		State.JUMP:
 			animated_sprite.play("jump")
 			animated_sprite.speed_scale = 1.0
@@ -172,6 +185,8 @@ func enter_state(state: State):
 				attack_hitbox.monitoring = false
 			if hitbox_highlight:
 				hitbox_highlight.visible = false
+			if block_bubble:
+				block_bubble.visible = false
 		State.FALL:
 			animated_sprite.play("falling")
 			animated_sprite.speed_scale = 1.0
@@ -179,12 +194,25 @@ func enter_state(state: State):
 				attack_hitbox.monitoring = false
 			if hitbox_highlight:
 				hitbox_highlight.visible = false
+			if block_bubble:
+				block_bubble.visible = false
 		State.ATTACK:
 			animated_sprite.play(attack_animation)
 			animated_sprite.speed_scale = 1.0
 			if attack_hitbox:
 				_configure_attack_hitbox(attack_tiles, attack_direction)
+			if block_bubble:
+				block_bubble.visible = false
 			_start_attack_recovery()
+		State.BLOCK:
+			animated_sprite.play("block")
+			animated_sprite.speed_scale = 1.0
+			if attack_hitbox:
+				attack_hitbox.monitoring = false
+			if hitbox_highlight:
+				hitbox_highlight.visible = false
+			if block_bubble:
+				block_bubble.visible = true
 		State.HITSTUN:
 			animated_sprite.play("hit")
 			animated_sprite.speed_scale = 1.0
@@ -195,6 +223,8 @@ func enter_state(state: State):
 				attack_hitbox.monitoring = false
 			if hitbox_highlight:
 				hitbox_highlight.visible = false
+			if block_bubble:
+				block_bubble.visible = false
 			_start_hitstun_recovery()
 		State.DEATH:
 			animated_sprite.play("death")
@@ -205,6 +235,8 @@ func enter_state(state: State):
 				attack_hitbox.monitoring = false
 			if hitbox_highlight:
 				hitbox_highlight.visible = false
+			if block_bubble:
+				block_bubble.visible = false
 			_start_death_cleanup()
 		State.DASH:
 			animated_sprite.play("disappear")
@@ -214,6 +246,8 @@ func enter_state(state: State):
 				attack_hitbox.monitoring = false
 			if hitbox_highlight:
 				hitbox_highlight.visible = false
+			if block_bubble:
+				block_bubble.visible = false
 			if collision_polygon:
 				collision_polygon.disabled = true
 			velocity = Vector2.ZERO
@@ -229,6 +263,8 @@ func exit_state(state: State):
 			pass
 		State.ATTACK:
 			pass
+		State.BLOCK:
+			pass
 		State.HITSTUN:
 			pass
 		State.DEATH:
@@ -243,6 +279,10 @@ func state_idle(_delta):
 	# Check for movement input
 	var direction = get_input_direction(_delta)
 	velocity.x = 0.0
+
+	if block_pressed and is_on_floor():
+		change_state(State.BLOCK)
+		return
 
 	if input_enabled and attack_requested:
 		attack_requested = false
@@ -262,6 +302,10 @@ func state_idle(_delta):
 
 func state_walk(_delta):
 	var direction = get_input_direction(_delta)
+
+	if block_pressed and is_on_floor():
+		change_state(State.BLOCK)
+		return
 
 	if input_enabled and attack_requested:
 		attack_requested = false
@@ -290,7 +334,11 @@ func state_walk(_delta):
 
 func state_attack(_delta):
 	# Lock movement while attacking
-	velocity.x = 0.0
+	if is_on_floor():
+		velocity.x = 0.0
+	else:
+		# Keep existing horizontal momentum mid-air
+		velocity.x = velocity.x
 	_update_attack_hitbox_center()
 	if attack_direction.x != 0:
 		animated_sprite.flip_h = attack_direction.x < 0
@@ -299,6 +347,21 @@ func state_attack(_delta):
 func state_hitstun(_delta):
 	# Lock movement while invulnerable from a hit
 	velocity.x = 0.0
+
+
+func state_block(_delta):
+	velocity.x = 0.0
+	if not block_pressed:
+		if block_bubble:
+			block_bubble.visible = false
+		change_state(State.IDLE)
+		return
+	var frames = animated_sprite.sprite_frames.get_frame_count("block")
+	if frames > 0:
+		var last = frames - 1
+		if animated_sprite.frame >= last:
+			animated_sprite.frame = last
+			animated_sprite.stop()
 
 
 func state_death(_delta):
@@ -385,7 +448,7 @@ func _configure_attack_hitbox(tile_count: int, direction: Vector2) -> void:
 		round(global_position.y / dash_unit_size) * dash_unit_size
 	)
 	if tile_count <= 2:
-		center.x += forward.x * (dash_unit_size * tile_count)
+		center.x += forward.x * dash_unit_size
 
 	attack_hitbox.global_position = center
 	attack_hitbox.monitoring = true
@@ -414,6 +477,11 @@ func _update_attack_hitbox_center() -> void:
 		if forward == Vector2.ZERO:
 			forward = Vector2.LEFT if animated_sprite.flip_h else Vector2.RIGHT
 		center.x += forward.x * dash_unit_size
+	elif attack_tiles == 2:
+		var forward_air = attack_direction
+		if forward_air == Vector2.ZERO:
+			forward_air = Vector2.LEFT if animated_sprite.flip_h else Vector2.RIGHT
+		center.x += forward_air.x * dash_unit_size
 	attack_hitbox.global_position = center
 	if hitbox_highlight:
 		hitbox_highlight.visible = true
@@ -439,12 +507,27 @@ func _input(event) -> void:
 		return
 	if not (event is InputEventKey):
 		return
-	if not event.pressed or event.echo:
+	if event.echo:
 		return
 	if current_state in [State.HITSTUN, State.DEATH, State.DASH]:
 		return
 
 	var code = event.keycode
+
+	if code == KEY_P:
+		if event.pressed:
+			block_pressed = true
+			block_start_time_ms = Time.get_ticks_msec()
+			if is_on_floor():
+				change_state(State.BLOCK)
+		else:
+			block_pressed = false
+			if current_state == State.BLOCK:
+				change_state(State.IDLE)
+		return
+
+	if not event.pressed:
+		return
 
 	# Number key detection for count buffering
 	if code >= KEY_0 and code <= KEY_9:
@@ -550,12 +633,21 @@ func apply_damage(amount: int) -> void:
 		return
 	if invulnerable:
 		return
+	if block_pressed:
+		var now_ms = Time.get_ticks_msec()
+		var parry = (now_ms - block_start_time_ms) <= int(parry_window_time * 1000.0)
+		if parry:
+			_show_damage_number(0)
+			return
+		amount = int(ceil(amount * 0.5))
 	health = max(health - amount, 0)
 	_show_damage_number(amount)
 	emit_signal("health_changed", health, max_health)
 	if health == 0:
 		emit_signal("died")
 		change_state(State.DEATH)
+		return
+	if block_pressed:
 		return
 	change_state(State.HITSTUN)
 
