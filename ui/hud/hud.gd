@@ -33,13 +33,25 @@ func _find_and_connect_players() -> void:
 			break
 
 func _on_node_added(node: Node) -> void:
-	if node.is_in_group("player"):
-		if player1 == null:
-			player1 = node
-			_connect_player(node, 1)
-		elif player2 == null:
-			player2 = node
-			_connect_player(node, 2)
+	# Defer the check because node_added fires before _ready(),
+	# and the player joins the "player" group in _ready()
+	_try_connect_player.call_deferred(node)
+
+
+func _try_connect_player(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
+	if not node.is_in_group("player"):
+		return
+	# Avoid double-connecting
+	if node == player1 or node == player2:
+		return
+	if player1 == null:
+		player1 = node
+		_connect_player(node, 1)
+	elif player2 == null:
+		player2 = node
+		_connect_player(node, 2)
 
 func _connect_player(player: CharacterBody2D, player_num: int) -> void:
 	if player.has_signal("health_changed"):
