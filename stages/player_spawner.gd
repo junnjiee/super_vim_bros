@@ -9,6 +9,7 @@ extends Node
 var spawned_players = {}
 
 func _ready():
+	add_to_group("player_spawner")
 	# Only server spawns players
 	if not multiplayer.is_server():
 		return
@@ -85,6 +86,19 @@ func _despawn_player(peer_id: int) -> void:
 		player.queue_free()
 	spawned_players.erase(peer_id)
 	print("Player removed for peer ", peer_id)
+
+
+@rpc("any_peer", "reliable")
+func request_despawn(peer_id: int) -> void:
+	if multiplayer.multiplayer_peer == null:
+		_despawn_player(peer_id)
+		return
+	if not multiplayer.is_server():
+		return
+	var sender_id = multiplayer.get_remote_sender_id()
+	if sender_id != 0 and sender_id != peer_id:
+		return
+	_despawn_player.rpc(peer_id)
 
 
 func spawn_local_player() -> void:

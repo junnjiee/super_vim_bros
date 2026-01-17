@@ -522,9 +522,11 @@ func _configure_attack_hitbox(tile_count: int, direction: Vector2) -> void:
 	attack_hitbox.monitoring = true
 
 	if hitbox_highlight:
-		hitbox_highlight.visible = true
-		hitbox_highlight.size = box_size
-		hitbox_highlight.position = -hitbox_highlight.size / 2
+		var show_hitbox = _is_local_authority()
+		hitbox_highlight.visible = show_hitbox
+		if show_hitbox:
+			hitbox_highlight.size = box_size
+			hitbox_highlight.position = -hitbox_highlight.size / 2
 
 
 func _update_attack_hitbox_center() -> void:
@@ -552,9 +554,11 @@ func _update_attack_hitbox_center() -> void:
 		center.x += forward_air.x * dash_unit_size
 	attack_hitbox.global_position = center
 	if hitbox_highlight:
-		hitbox_highlight.visible = true
-		hitbox_highlight.size = box_size
-		hitbox_highlight.position = -hitbox_highlight.size / 2
+		var show_hitbox = _is_local_authority()
+		hitbox_highlight.visible = show_hitbox
+		if show_hitbox:
+			hitbox_highlight.size = box_size
+			hitbox_highlight.position = -hitbox_highlight.size / 2
 
 
 func _process_remote_visuals() -> void:
@@ -947,11 +951,28 @@ func _start_death_cleanup() -> void:
 	await animated_sprite.animation_finished
 	if current_state != State.DEATH:
 		return
-	if collision_polygon:
-		collision_polygon.disabled = true
-	hide()
-	set_process(false)
-	set_physics_process(false)
+	_despawn_after_death()
+
+
+func _despawn_after_death() -> void:
+	var spawner = _get_player_spawner()
+	if spawner and spawner.has_method("request_despawn"):
+		var peer_id = get_multiplayer_authority()
+		if multiplayer.multiplayer_peer != null and not multiplayer.is_server():
+			spawner.request_despawn.rpc_id(1, peer_id)
+		else:
+			spawner.request_despawn(peer_id)
+		return
+	queue_free()
+
+
+func _get_player_spawner() -> Node:
+	var spawners = get_tree().get_nodes_in_group("player_spawner")
+	if spawners.size() > 0:
+		return spawners[0]
+	if get_tree().current_scene:
+		return get_tree().current_scene.get_node_or_null("PlayerSpawner")
+	return null
 
 
 func _on_attack_hitbox_body_entered(body: Node) -> void:

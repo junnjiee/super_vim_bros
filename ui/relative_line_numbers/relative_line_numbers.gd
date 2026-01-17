@@ -50,7 +50,7 @@ func _find_player():
 			player = p
 			break
 	# Fallback for single-player
-	if not player and players.size() > 0:
+	if not player and multiplayer.multiplayer_peer == null and players.size() > 0:
 		player = players[0]
 
 	# Try to find camera
@@ -59,6 +59,9 @@ func _find_player():
 		camera = cameras[0]
 
 func _process(_delta):
+	if not is_instance_valid(player):
+		player = null
+		_find_player()
 	if not player:
 		return
 
@@ -70,6 +73,8 @@ func _process(_delta):
 
 	# Calculate player's current row (which grid cell they're in)
 	var player_row = floor(player.global_position.y / row_height)
+	var player_row_center_y = player_row * row_height + (row_height / 2.0)
+	var player_row_offset = player.global_position.y - player_row_center_y
 
 	# Calculate camera viewport bounds
 	var camera_top = 0
@@ -82,7 +87,7 @@ func _process(_delta):
 
 	# Calculate which grid rows are visible
 	# Grid cells: row i spans from (i * row_height) to ((i+1) * row_height)
-	var top_grid_row = floor(camera_top / row_height)
+	var top_grid_row = floor((camera_top - player_row_offset) / row_height)
 	var rows_in_viewport = int(ceil(viewport_size.y / (row_height * zoom_factor))) + 2
 
 	# Update labels
@@ -96,7 +101,7 @@ func _process(_delta):
 		var relative_distance = world_row - player_row
 
 		# Calculate center of this grid cell in world coordinates
-		var world_cell_center_y = world_row * row_height + (row_height / 2.0)
+		var world_cell_center_y = world_row * row_height + (row_height / 2.0) + player_row_offset
 
 		# Convert to screen coordinates
 		var screen_y = (world_cell_center_y - camera_top) * zoom_factor
