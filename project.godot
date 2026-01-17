@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="vimbrawler"
+run/main_scene="uid://c1sysexv5j6v0"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -23,3 +24,10 @@ window/size/viewport_height=1080
 
 version_control/plugin_name="GitPlugin"
 version_control/autoload_on_startup=true
+
+[input]
+
+vim_left={
+"deadzone": 0.2,
+"events": []
+}
