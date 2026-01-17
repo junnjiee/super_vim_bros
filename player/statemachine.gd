@@ -38,6 +38,7 @@ var current_state: State = State.IDLE
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 @onready var collision_highlight: ColorRect = $CollisionHighlight
 @onready var block_bubble: Polygon2D = $BlockBubble
+@onready var neutral_attack_sfx: AudioStreamPlayer = $NeutralAttackSfx
 var health: int = max_health
 var invulnerable := false
 var pending_d := false
@@ -219,6 +220,8 @@ func enter_state(state: State):
 		State.ATTACK:
 			animated_sprite.play(attack_animation)
 			animated_sprite.speed_scale = 1.0
+			if attack_animation.begins_with("neutral_") or attack_animation == "attack_jump":
+				_play_neutral_attack_sfx()
 			if attack_hitbox:
 				_configure_attack_hitbox(attack_tiles, attack_direction)
 			if block_bubble:
@@ -459,6 +462,12 @@ func get_input_direction(delta) -> Vector2:
 		direction.x += 1
 
 	return direction
+
+
+func _play_neutral_attack_sfx() -> void:
+	if neutral_attack_sfx:
+		neutral_attack_sfx.stop()
+		neutral_attack_sfx.play()
 
 
 func _configure_attack_hitbox(tile_count: int, direction: Vector2) -> void:
