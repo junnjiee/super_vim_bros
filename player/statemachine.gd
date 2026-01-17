@@ -26,7 +26,7 @@ var pending_d := false
 var pending_d_timer := 0.0
 var attack_direction := Vector2.ZERO
 var attack_requested := false
-var attack_animation := "attack"
+var attack_animation := "attack_dir"
 var neutral_combo_step := 0
 var neutral_combo_timer := 0.0
 
@@ -94,7 +94,7 @@ func enter_state(state: State):
 		State.IDLE:
 			animated_sprite.play("idle")
 		State.WALK:
-			animated_sprite.play("walk")
+			animated_sprite.play("walk")	
 		State.ATTACK:
 			animated_sprite.play(attack_animation)
 			_start_attack_recovery()
@@ -210,7 +210,7 @@ func _input(event) -> void:
 		if code == KEY_W:
 			pending_d = false
 			attack_direction = Vector2.LEFT if animated_sprite.flip_h else Vector2.RIGHT
-			attack_animation = "attack"
+			attack_animation = "attack_dir"
 			neutral_combo_step = 0
 			neutral_combo_timer = 0.0
 			attack_requested = true
@@ -218,7 +218,7 @@ func _input(event) -> void:
 		if code == KEY_B:
 			pending_d = false
 			attack_direction = Vector2.RIGHT if animated_sprite.flip_h else Vector2.LEFT
-			attack_animation = "attack"
+			attack_animation = "attack_dir"
 			neutral_combo_step = 0
 			neutral_combo_timer = 0.0
 			attack_requested = true
