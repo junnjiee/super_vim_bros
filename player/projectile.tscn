@@ -1,9 +1,45 @@
-[gd_scene load_steps=3 format=3 uid="uid://projectile_ranged"]
+[gd_scene load_steps=9 format=3 uid="uid://dmdj1eusqj7x"]
 
-[ext_resource type="Script" path="res://player/projectile.gd" id="1"]
+[ext_resource type="Script" uid="uid://cmggwgsiu5ir7" path="res://player/projectile.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://bxcu2rr5fquv0" path="res://sprites/character-pack-3/Animations/Light_Charge.png" id="2_islhu"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_projectile"]
-size = Vector2(32, 16)
+[sub_resource type="CircleShape2D" id="CircleShape2D_islhu"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_q5b1o"]
+atlas = ExtResource("2_islhu")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gjidt"]
+atlas = ExtResource("2_islhu")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6pljo"]
+atlas = ExtResource("2_islhu")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_blmhr"]
+atlas = ExtResource("2_islhu")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_5s2ix"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_q5b1o")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gjidt")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6pljo")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_blmhr")
+}],
+"loop": true,
+"name": &"proj",
+"speed": 8.0
+}]
 
 [node name="Projectile" type="Area2D"]
 collision_layer = 0
@@ -11,11 +47,8 @@ collision_mask = 3
 script = ExtResource("1")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("RectangleShape2D_projectile")
+shape = SubResource("CircleShape2D_islhu")
 
-[node name="ColorRect" type="ColorRect" parent="."]
-offset_left = -16.0
-offset_top = -8.0
-offset_right = 16.0
-offset_bottom = 8.0
-color = Color(1, 0.5, 0, 1)
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_5s2ix")
+animation = &"proj"

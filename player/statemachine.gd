@@ -15,6 +15,9 @@ enum State {
 }
 
 @export var speed: float = 300.0
+@export var max_run_speed: float = 520.0
+@export var run_accel: float = 600.0
+@export var run_animation_speed: float = 420.0
 @export var jump_force := 450.0
 @export var max_health: int = 100
 @export var invuln_time := 0.4
@@ -72,6 +75,8 @@ var last_remote_animation: StringName = &""
 var last_remote_flip_h := false
 var block_pressed := false
 var block_start_time_ms := 0
+var move_hold_time := 0.0
+var last_move_dir := 0.0
 
 # Count input buffering
 var pending_count: String = ""
@@ -347,6 +352,7 @@ func state_idle(_delta):
 	# Check for movement input
 	var direction = get_input_direction(_delta)
 	velocity.x = 0.0
+	_reset_move_hold_if_idle(direction)
 
 	if block_pressed and is_on_floor():
 		change_state(State.BLOCK)
@@ -387,11 +393,13 @@ func state_walk(_delta):
 		return
 
 	# Move the player
-	velocity.x = direction.x * speed
+	_update_move_hold(direction, _delta)
+	velocity.x = direction.x * _get_current_move_speed()
 
 	# Flip sprite based on direction
 	if direction.x != 0:
 		animated_sprite.flip_h = direction.x < 0
+		_update_run_animation()
 
 	if not is_on_floor():
 		if velocity.y < 0:
@@ -442,7 +450,8 @@ func state_dash(_delta):
 
 func state_jump(_delta):
 	var direction = get_input_direction(_delta)
-	velocity.x = direction.x * speed
+	_update_move_hold(direction, _delta)
+	velocity.x = direction.x * _get_current_move_speed()
 	if direction.x != 0:
 		animated_sprite.flip_h = direction.x < 0
 	if velocity.y > 0:
@@ -457,7 +466,8 @@ func state_jump(_delta):
 
 func state_fall(_delta):
 	var direction = get_input_direction(_delta)
-	velocity.x = direction.x * speed
+	_update_move_hold(direction, _delta)
+	velocity.x = direction.x * _get_current_move_speed()
 	if direction.x != 0:
 		animated_sprite.flip_h = direction.x < 0
 	if is_on_floor():
@@ -494,6 +504,36 @@ func get_input_direction(delta) -> Vector2:
 		direction.x += 1
 
 	return direction
+
+
+func _update_move_hold(direction: Vector2, delta: float) -> void:
+	if direction.x == 0.0:
+		move_hold_time = 0.0
+		last_move_dir = 0.0
+		return
+	var dir = sign(direction.x)
+	if not is_equal_approx(dir, last_move_dir):
+		move_hold_time = 0.0
+		last_move_dir = dir
+	move_hold_time += delta
+
+
+func _reset_move_hold_if_idle(direction: Vector2) -> void:
+	if direction == Vector2.ZERO:
+		move_hold_time = 0.0
+		last_move_dir = 0.0
+
+
+func _get_current_move_speed() -> float:
+	return min(speed + (move_hold_time * run_accel), max_run_speed)
+
+
+func _update_run_animation() -> void:
+	if not animated_sprite:
+		return
+	var target_animation = "run" if abs(velocity.x) >= run_animation_speed else "walk"
+	if animated_sprite.animation != target_animation:
+		animated_sprite.play(target_animation)
 
 
 func _play_neutral_attack_sfx() -> void:
