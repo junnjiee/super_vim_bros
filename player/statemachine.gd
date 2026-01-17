@@ -20,6 +20,7 @@ enum State {
 @export var invuln_time := 0.4
 @export var attack_time := 0.2
 @export var input_buffer_time := 0.25
+@export var d_command_timeout := 4.0
 @export var input_enabled := true
 @export var dash_unit_size: int = 64
 @export var dir_attack_travel_time: float = 0.12
@@ -55,6 +56,10 @@ var block_start_time_ms := 0
 var pending_count: String = ""
 var pending_count_timer: float = 0.0
 
+# Ranged attack cooldown
+var ranged_cooldown_timer: float = 0.0
+@export var ranged_cooldown: float = 0.75
+
 # Dash tracking
 var dash_target: Vector2 = Vector2.ZERO
 var dash_direction: Vector2 = Vector2.ZERO
@@ -65,6 +70,7 @@ var in_insert_mode := false
 var insert_obstacles: Array = []
 const MAX_INSERT_OBSTACLES = 8
 const OBSTACLE_SCENE = preload("res://player/insert_obstacle.tscn")
+const PROJECTILE_SCENE = preload("res://player/projectile.tscn")
 
 signal health_changed(current: int, max: int)
 signal died
@@ -115,6 +121,10 @@ func _physics_process(delta):
 		pending_count_timer -= delta
 		if pending_count_timer <= 0.0:
 			pending_count = ""
+
+	# Ranged attack cooldown
+	if ranged_cooldown_timer > 0.0:
+		ranged_cooldown_timer -= delta
 
 	var on_floor = is_on_floor()
 
@@ -557,13 +567,31 @@ func _input(event) -> void:
 	if not event.pressed:
 		return
 
+	# Check for ranged attacks first (d0 and d$) before standalone 0 and $
+	if pending_d and pending_d_timer > 0.0:
+		# Ranged attack: d0 (fire left)
+		if code == KEY_0:
+			pending_d = false
+			if ranged_cooldown_timer <= 0.0:
+				_fire_projectile(Vector2.LEFT)
+				ranged_cooldown_timer = ranged_cooldown
+			return
+
+		# Ranged attack: d$ (fire right)
+		if code == KEY_4 and event.shift_pressed:
+			pending_d = false
+			if ranged_cooldown_timer <= 0.0:
+				_fire_projectile(Vector2.RIGHT)
+				ranged_cooldown_timer = ranged_cooldown
+			return
+
 	# Number key detection for count buffering
-	# Vim '0' command: dash to start of platform (x=300)
+	# Vim '0' command: dash to start of platform (x=300) - only if not pending_d
 	if code == KEY_0 and pending_count == "":
 		_initiate_absolute_dash(300.0)
 		return
 
-	# Vim '$' command (Shift+4): dash to end of platform (x=1550)
+	# Vim '$' command (Shift+4): dash to end of platform (x=1550) - only if not pending_d
 	if code == KEY_4 and event.shift_pressed:
 		_initiate_absolute_dash(1550.0)
 		return
@@ -616,7 +644,7 @@ func _input(event) -> void:
 			attack_requested = true
 			return
 		pending_d = true
-		pending_d_timer = input_buffer_time
+		pending_d_timer = d_command_timeout
 		return
 
 	# Directional attack: "d" then front/back
@@ -697,6 +725,14 @@ func _initiate_absolute_dash(target_x: float):
 	dash_target = target
 	dash_direction = Vector2.LEFT if target_x < global_position.x else Vector2.RIGHT
 	change_state(State.DASH)
+
+
+func _fire_projectile(direction: Vector2) -> void:
+	var projectile = PROJECTILE_SCENE.instantiate()
+	var spawn_pos = global_position + direction * dash_unit_size
+	projectile.initialize(direction, self)
+	projectile.global_position = spawn_pos
+	get_parent().add_child(projectile)
 
 
 func apply_damage(amount: int) -> void:

@@ -1,5 +1,4 @@
 [gd_scene load_steps=9 format=3 uid="uid://djsjomcvsu7ov"]
-[gd_scene load_steps=9 format=3 uid="uid://djsjomcvsu7ov"]
 
 [ext_resource type="Texture2D" uid="uid://ji03rsx4sfxj" path="res://stages/prototype_stage_final.png" id="1_jcl3n"]
 [ext_resource type="PackedScene" uid="uid://c1sysexv5j6v0" path="res://player/player.tscn" id="2_4t1fw"]
