@@ -132,7 +132,7 @@ func _physics_process(delta):
 	# Apply vertical physics every frame (skip during teleport dash and death)
 	if not on_floor and current_state not in [State.DASH, State.DEATH]:
 		velocity.y += gravity * delta
-	if input_enabled and on_floor and current_state not in [State.ATTACK, State.HITSTUN, State.DEATH, State.DASH] and Input.is_key_pressed(KEY_K):
+	if input_enabled and on_floor and current_state not in [State.ATTACK, State.HITSTUN, State.DEATH, State.DASH, State.INSERT] and Input.is_key_pressed(KEY_K):
 		velocity.y = -jump_force
 		change_state(State.JUMP)
 
@@ -568,6 +568,31 @@ func _input(event) -> void:
 	if not event.pressed:
 		return
 
+	# INSERT mode: Handle separately to prevent other actions
+	if current_state == State.INSERT:
+		# Esc or Ctrl+C to exit INSERT mode
+		if code == KEY_ESCAPE or (event.ctrl_pressed and code == KEY_C):
+			if is_on_floor():
+				change_state(State.IDLE)
+			else:
+				change_state(State.FALL)
+			return
+
+		# Letter keys A-Z to spawn obstacles
+		if code >= KEY_A and code <= KEY_Z:
+			var letter = char(code)
+			_create_obstacle_at_cursor(letter)
+			return
+
+		# Number keys 0-9 to spawn obstacles
+		if code >= KEY_0 and code <= KEY_9:
+			var letter = char(code)
+			_create_obstacle_at_cursor(letter)
+			return
+
+		# Ignore all other keys in INSERT mode
+		return
+
 	# Check for ranged attacks first (d0 and d$) before standalone 0 and $
 	if pending_d and pending_d_timer > 0.0:
 		# Ranged attack: d0 (fire left)
@@ -682,22 +707,6 @@ func _input(event) -> void:
 		if current_state in [State.IDLE, State.WALK]:
 			change_state(State.INSERT)
 		return
-
-	# INSERT mode: Esc or Ctrl+C to exit
-	if current_state == State.INSERT:
-		if code == KEY_ESCAPE or (event.ctrl_pressed and code == KEY_C):
-			# Return to appropriate state based on floor status
-			if is_on_floor():
-				change_state(State.IDLE)
-			else:
-				change_state(State.FALL)
-			return
-
-		# INSERT mode: Letter keys A-Z to spawn obstacles
-		if code >= KEY_A and code <= KEY_Z:
-			var letter = char(code)
-			_create_obstacle_at_cursor(letter)
-			return
 
 
 func _initiate_dash(direction: Vector2, count: int, is_vertical: bool):
