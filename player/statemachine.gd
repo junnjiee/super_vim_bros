@@ -11,6 +11,7 @@ enum State {
 	HITSTUN,
 	DEATH,
 	DASH,
+	INSERT,
 }
 
 @export var speed: float = 200.0
@@ -58,6 +59,12 @@ var pending_count_timer: float = 0.0
 var dash_target: Vector2 = Vector2.ZERO
 var dash_direction: Vector2 = Vector2.ZERO
 var attack_travel_tween: Tween = null
+
+# INSERT mode tracking
+var in_insert_mode := false
+var insert_obstacles: Array = []
+const MAX_INSERT_OBSTACLES = 8
+const OBSTACLE_SCENE = preload("res://player/insert_obstacle.tscn")
 
 signal health_changed(current: int, max: int)
 signal died
@@ -138,6 +145,8 @@ func _physics_process(delta):
 			state_death(delta)
 		State.DASH:
 			state_dash(delta)
+		State.INSERT:
+			state_insert(delta)
 
 	# Apply movement/gravity
 	move_and_slide()
@@ -252,6 +261,15 @@ func enter_state(state: State):
 				collision_polygon.disabled = true
 			velocity = Vector2.ZERO
 			_start_dash_sequence()
+		State.INSERT:
+			animated_sprite.play("idle")
+			animated_sprite.speed_scale = 1.0
+			animated_sprite.modulate = Color(1.0, 1.0, 0.7)  # Yellow tint
+			in_insert_mode = true
+			if attack_hitbox:
+				attack_hitbox.monitoring = false
+			if hitbox_highlight:
+				hitbox_highlight.visible = false
 
 
 func exit_state(state: State):
@@ -271,6 +289,10 @@ func exit_state(state: State):
 			pass
 		State.DASH:
 			pass  # Nothing to clean up
+		State.INSERT:
+			animated_sprite.modulate = Color(1.0, 1.0, 1.0)  # Reset color
+			in_insert_mode = false
+			# Keep tracking obstacles to enforce FIFO limit across insert sessions
 
 
 # === STATE LOGIC ===
@@ -397,6 +419,12 @@ func state_fall(_delta):
 			change_state(State.IDLE)
 		else:
 			change_state(State.WALK)
+
+
+func state_insert(_delta):
+	# Lock horizontal movement while in insert mode
+	velocity.x = 0.0
+	# Gravity is applied in _physics_process, so player will fall if airborne
 
 
 # === HELPER FUNCTIONS ===
@@ -609,6 +637,28 @@ func _input(event) -> void:
 		_initiate_dash(Vector2.LEFT, 5, false)
 		return
 
+	# INSERT mode: 'i' to enter from IDLE/WALK
+	if code == KEY_I:
+		if current_state in [State.IDLE, State.WALK]:
+			change_state(State.INSERT)
+		return
+
+	# INSERT mode: Esc or Ctrl+C to exit
+	if current_state == State.INSERT:
+		if code == KEY_ESCAPE or (event.ctrl_pressed and code == KEY_C):
+			# Return to appropriate state based on floor status
+			if is_on_floor():
+				change_state(State.IDLE)
+			else:
+				change_state(State.FALL)
+			return
+
+		# INSERT mode: Letter keys A-Z to spawn obstacles
+		if code >= KEY_A and code <= KEY_Z:
+			var letter = char(code)
+			_create_obstacle_at_cursor(letter)
+			return
+
 
 func _initiate_dash(direction: Vector2, count: int, is_vertical: bool):
 	# Calculate target position based on relative grid numbering
@@ -787,4 +837,82 @@ func _show_damage_number(amount: int) -> void:
 	tween.tween_property(label, "modulate:a", 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.finished.connect(label.queue_free)
 
-		
+
+# === INSERT MODE OBSTACLE FUNCTIONS ===
+
+func _create_obstacle_at_cursor(letter: String) -> void:
+	# Clean up any expired obstacles first
+	_remove_invalid_obstacles()
+
+	var facing_direction = -1 if animated_sprite.flip_h else 1
+	var push_vector = Vector2(dash_unit_size * facing_direction, 0)
+
+	# Push all existing blocks one tile forward in the facing direction
+	for obstacle in insert_obstacles:
+		if obstacle and is_instance_valid(obstacle):
+			obstacle.global_position += push_vector
+
+	# Remove the farthest block if we exceed the limit (FIFO)
+	if insert_obstacles.size() >= MAX_INSERT_OBSTACLES:
+		var oldest = insert_obstacles.pop_front()
+		if oldest and is_instance_valid(oldest):
+			oldest.queue_free()
+
+	# Calculate spawn position - always spawn at position 1 (closest to player)
+	var offset = dash_unit_size * facing_direction
+	var spawn_pos = global_position + Vector2(offset, 0)
+
+	# Grid-align the position
+	spawn_pos.x = round(spawn_pos.x / dash_unit_size) * dash_unit_size
+	spawn_pos.y = round(spawn_pos.y / dash_unit_size) * dash_unit_size
+
+	# Spawn the new obstacle at position 1
+	_spawn_obstacle_local(spawn_pos, letter)
+
+
+func _spawn_obstacle_local(pos: Vector2, letter: String) -> void:
+	# Instantiate the obstacle scene
+	var obstacle = OBSTACLE_SCENE.instantiate()
+
+	# Determine player color (blue for P1, red for P2, or default gray)
+	var color = Color(0.5, 0.5, 0.5, 0.5)  # Default gray
+	if multiplayer.multiplayer_peer != null:
+		# Multiplayer mode - color by player ID
+		if get_multiplayer_authority() == 1:
+			color = Color(0.3, 0.3, 0.8, 0.5)  # Blue tint for P1
+		else:
+			color = Color(0.8, 0.3, 0.3, 0.5)  # Red tint for P2
+	else:
+		# Singleplayer mode - use blue tint
+		color = Color(0.3, 0.3, 0.8, 0.5)
+
+	# Initialize the obstacle
+	obstacle.initialize(pos, letter, color)
+
+	# Add to the stage (player's parent)
+	var stage = get_parent()
+	if stage:
+		stage.add_child(obstacle)
+
+	# Track the obstacle
+	insert_obstacles.append(obstacle)
+
+
+func _cleanup_insert_obstacles() -> void:
+	# Queue free all obstacles
+	for obstacle in insert_obstacles:
+		if obstacle and is_instance_valid(obstacle):
+			obstacle.queue_free()
+
+	# Clear the array
+	insert_obstacles.clear()
+
+
+func _remove_invalid_obstacles() -> void:
+	# Remove obstacles that have expired naturally (reached lifetime)
+	var i = 0
+	while i < insert_obstacles.size():
+		if not is_instance_valid(insert_obstacles[i]):
+			insert_obstacles.remove_at(i)
+		else:
+			i += 1
