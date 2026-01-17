@@ -39,7 +39,14 @@ func _on_player_connected(peer_id: int):
 		push_error("Spawn point not found")
 		return
 
+	var existing_player_ids = spawned_players.keys()
 	_spawn_player.rpc(peer_id, spawn_point.global_position)
+	# Ensure late-joining peers receive already-spawned players (e.g. host).
+	for existing_peer_id in existing_player_ids:
+		var existing_player = spawned_players[existing_peer_id]
+		if not is_instance_valid(existing_player):
+			continue
+		_spawn_player.rpc_id(peer_id, existing_peer_id, existing_player.global_position)
 
 
 func _on_player_disconnected(peer_id: int):
@@ -61,7 +68,7 @@ func _spawn_player(peer_id: int, spawn_position: Vector2) -> void:
 
 	var player = player_scene.instantiate()
 	player.global_position = spawn_position
-	player.set_multiplayer_authority(peer_id)
+	player.set_multiplayer_authority(peer_id, true)
 	get_parent().add_child(player)
 	spawned_players[peer_id] = player
 	print("Player spawned for peer ", peer_id, " at ", spawn_position)
