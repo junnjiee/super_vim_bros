@@ -1,19 +1,120 @@
-[gd_scene load_steps=3 format=3 uid="uid://djsjomcvsu7ov"]
+[gd_scene load_steps=19 format=3 uid="uid://djsjomcvsu7ov"]
 
 [ext_resource type="Texture2D" uid="uid://ji03rsx4sfxj" path="res://stages/prototype_stage_final.png" id="1_jcl3n"]
 [ext_resource type="Texture2D" uid="uid://d2m4jfpo5eu8c" path="res://sprites/character-pack-1/Animations/Walking.png" id="2_4t1fw"]
+[ext_resource type="Script" uid="uid://dr5g0gqi0bq5k" path="res://player/player.gd" id="2_6xs47"]
+[ext_resource type="Texture2D" uid="uid://bxdnjdx8x1guy" path="res://sprites/character-pack-3/Animations/Stealth_Mode.png" id="3_iapc8"]
 
-[node name="CharacterBody2D" type="CharacterBody2D"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_wodsf"]
+atlas = ExtResource("3_iapc8")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_g1dw6"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yw30f"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(128, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qjkh3"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(256, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_g6k8r"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(384, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_boad6"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(512, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rgyib"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(640, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hg6s5"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(768, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8t03j"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(896, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2ieo8"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(1024, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ebec5"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(1152, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yllr7"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(1280, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kb6p2"]
+atlas = ExtResource("2_4t1fw")
+region = Rect2(1408, 0, 128, 128)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_caqpr"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wodsf")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_g1dw6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yw30f")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qjkh3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_g6k8r")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_boad6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rgyib")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hg6s5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_8t03j")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2ieo8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ebec5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yllr7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kb6p2")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 10.0
+}]
+
+[node name="Node 2D" type="Node2D"]
 
 [node name="PrototypeStageFinal" type="Sprite2D" parent="."]
 position = Vector2(960, 540)
 scale = Vector2(1.2, 1.2)
 texture = ExtResource("1_jcl3n")
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("2_4t1fw")
-hframes = 12
-frame = 3
 
 [node name="platform" type="StaticBody2D" parent="."]
 position = Vector2(263, 474)
@@ -44,3 +145,16 @@ drag_left_margin = 0.0
 drag_right_margin = 0.0
 editor_draw_limits = true
 editor_draw_drag_margin = true
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="."]
+position = Vector2(-19, 0)
+script = ExtResource("2_6xs47")
+
+[node name="Camera2D" type="Camera2D" parent="CharacterBody2D"]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D"]
+sprite_frames = SubResource("SpriteFrames_caqpr")
+animation = &"walk"
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="CharacterBody2D"]
+polygon = PackedVector2Array(-1, 0, 8, 1, 7, 13, 6, 26, 4, 45, -2, 41, -11, 43, -11, 14, -2, 11)

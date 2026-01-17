@@ -20,4 +20,16 @@ func _physics_process(delta):
 	
 	direction = direction.normalized()
 	velocity = direction * speed
+	
+		# --- Animation ---
+	if direction != Vector2.ZERO:
+		$AnimatedSprite2D.play("walk")
+	else:
+		$AnimatedSprite2D.play("idle")
+
+	# --- Flip sprite ---
+	if direction.x != 0:
+		$AnimatedSprite2D.flip_h = direction.x < 0
+
+	
 	move_and_slide()
