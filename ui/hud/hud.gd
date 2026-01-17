@@ -65,6 +65,19 @@ func _connect_player(player: CharacterBody2D, player_num: int) -> void:
 
 	if player.has_signal("died"):
 		player.died.connect(_on_player_died.bind(player_num))
+	_apply_player_color(player, player_num)
+
+
+func _apply_player_color(player: CharacterBody2D, player_num: int) -> void:
+	var color = _get_player_title_color(player_num)
+	if player.has_method("set_player_color"):
+		player.set_player_color(color)
+
+
+func _get_player_title_color(player_num: int) -> Color:
+	if player_num == 1:
+		return player1_label.get_theme_color("font_color")
+	return player2_label.get_theme_color("font_color")
 
 func _on_health_changed(current: int, max: int, player_num: int) -> void:
 	if player_num == 1:

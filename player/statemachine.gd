@@ -14,8 +14,8 @@ enum State {
 	INSERT,
 }
 
-@export var speed: float = 200.0
-@export var jump_force := 350.0
+@export var speed: float = 300.0
+@export var jump_force := 400.0
 @export var max_health: int = 100
 @export var invuln_time := 0.4
 @export var attack_time := 0.2
@@ -26,6 +26,7 @@ enum State {
 @export var dash_unit_size: int = 64
 @export var dir_attack_travel_time: float = 0.12
 @export var parry_window_time: float = 0.1
+@export var knockback_strength: float = 360.0
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
@@ -38,10 +39,12 @@ var current_state: State = State.IDLE
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 @onready var collision_highlight: ColorRect = $CollisionHighlight
 @onready var block_bubble: Polygon2D = $BlockBubble
+@onready var head_pointer_shape: Polygon2D = $HeadPointer/PointerShape
 @onready var neutral_attack_sfx: AudioStreamPlayer = $NeutralAttackSfx
 var _health: int = 0
 var _last_health_reported: int = -1
 var _last_max_health_reported: int = -1
+var player_color: Color = Color(1, 1, 1, 1)
 var health: int:
 	set(value):
 		if value == _health:
@@ -110,6 +113,7 @@ func _ready():
 		collision_highlight.visible = true
 	if block_bubble:
 		block_bubble.visible = false
+	_apply_player_color()
 	enter_state(current_state)
 
 
@@ -397,8 +401,8 @@ func state_attack(_delta):
 
 
 func state_hitstun(_delta):
-	# Lock movement while invulnerable from a hit
-	velocity.x = 0.0
+	# Keep knockback momentum during hitstun.
+	pass
 
 
 func state_block(_delta):
@@ -806,7 +810,7 @@ func _get_projectile_spawn_pos(direction: Vector2) -> Vector2:
 	return global_position + direction * dash_unit_size
 
 
-func apply_damage(amount: int) -> void:
+func apply_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 	if amount <= 0:
 		return
 	if invulnerable:
@@ -826,12 +830,13 @@ func apply_damage(amount: int) -> void:
 		return
 	if block_pressed:
 		return
+	_apply_knockback(knockback)
 	change_state(State.HITSTUN)
 
 
 @rpc("any_peer", "reliable")
-func network_apply_damage(amount: int):
-	apply_damage(amount)
+func network_apply_damage(amount: int, knockback: Vector2 = Vector2.ZERO):
+	apply_damage(amount, knockback)
 
 
 func _start_hitstun_recovery() -> void:
@@ -895,6 +900,18 @@ func _update_collision_highlight() -> void:
 	collision_highlight.position = -collision_highlight.size / 2
 
 
+func set_player_color(color: Color) -> void:
+	player_color = color
+	_apply_player_color()
+
+
+func _apply_player_color() -> void:
+	if animated_sprite:
+		animated_sprite.self_modulate = player_color
+	if head_pointer_shape:
+		head_pointer_shape.color = player_color
+
+
 func _start_dash_sequence() -> void:
 	await animated_sprite.animation_finished  # wait for disappear
 	if current_state != State.DASH:
@@ -942,7 +959,10 @@ func _on_attack_hitbox_body_entered(body: Node) -> void:
 		return
 	if not _is_local_authority():
 		return
-	_apply_damage_to_target(body, 10)
+	var knockback = Vector2.ZERO
+	if body is Node2D:
+		knockback = _calculate_knockback(body, attack_direction)
+	_apply_damage_to_target(body, 10, knockback)
 
 
 func _show_damage_number(amount: int) -> void:
@@ -969,18 +989,37 @@ func _emit_health_changed_if_needed() -> void:
 	emit_signal("health_changed", _health, max_health)
 
 
-func _apply_damage_to_target(body: Node, amount: int) -> void:
+func _apply_damage_to_target(body: Node, amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 	if not body.has_method("apply_damage"):
 		return
 	if multiplayer.multiplayer_peer == null:
-		body.apply_damage(amount)
+		body.apply_damage(amount, knockback)
 		return
 	var target_id = body.get_multiplayer_authority()
 	if target_id == multiplayer.get_unique_id():
-		body.apply_damage(amount)
+		body.apply_damage(amount, knockback)
 		return
 	if body.has_method("network_apply_damage"):
-		body.network_apply_damage.rpc_id(target_id, amount)
+		body.network_apply_damage.rpc_id(target_id, amount, knockback)
+
+
+func _calculate_knockback(target: Node2D, direction_hint: Vector2 = Vector2.ZERO) -> Vector2:
+	var horizontal = direction_hint.x
+	if is_zero_approx(horizontal):
+		var dx = target.global_position.x - global_position.x
+		if dx > 0.0:
+			horizontal = 1.0
+		elif dx < 0.0:
+			horizontal = -1.0
+		else:
+			horizontal = -1.0 if animated_sprite.flip_h else 1.0
+	return Vector2(horizontal * knockback_strength, 0.0)
+
+
+func _apply_knockback(force: Vector2) -> void:
+	if force == Vector2.ZERO:
+		return
+	velocity.x = force.x
 
 
 # === INSERT MODE OBSTACLE FUNCTIONS ===
