@@ -1,9 +1,40 @@
 [gd_scene load_steps=2 format=3 uid="uid://djsjomcvsu7ov"]
 
-[ext_resource type="Texture2D" uid="uid://bbdkq1nrfwfd4" path="res://stages/prototype_stage_final.png" id="1_jcl3n"]
+[ext_resource type="Texture2D" uid="uid://ji03rsx4sfxj" path="res://stages/prototype_stage_final.png" id="1_jcl3n"]
 
 [node name="Node2D" type="Node2D"]
 
 [node name="PrototypeStageFinal" type="Sprite2D" parent="."]
 position = Vector2(960, 540)
+scale = Vector2(1.2, 1.2)
 texture = ExtResource("1_jcl3n")
+
+[node name="platform" type="StaticBody2D" parent="."]
+position = Vector2(263, 474)
+collision_layer = 4
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="platform"]
+position = Vector2(712, 285)
+polygon = PackedVector2Array(-1, 0, -653, 1, -688, 27, -688, 222, 628, 223, 625, 26, 580, -2)
+
+[node name="Label" type="Label" parent="platform"]
+offset_left = 241.0
+offset_top = 375.0
+offset_right = 343.0
+offset_bottom = 424.0
+text = "platform
+"
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(-1262, 335)
+zoom = Vector2(0.7, 0.7)
+limit_left = 0
+limit_top = 1100
+limit_right = 2000
+limit_bottom = -100
+drag_horizontal_enabled = true
+drag_vertical_enabled = true
+drag_left_margin = 0.0
+drag_right_margin = 0.0
+editor_draw_limits = true
+editor_draw_drag_margin = true
