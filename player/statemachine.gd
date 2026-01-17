@@ -37,6 +37,8 @@ var attack_animation := "attack_dir"
 var neutral_combo_step := 0
 var neutral_combo_timer := 0.0
 var hitbox_offset := Vector2.ZERO
+var last_remote_animation: StringName = &""
+var last_remote_flip_h := false
 
 # Count input buffering
 var pending_count: String = ""
@@ -63,10 +65,16 @@ func _ready():
 		attack_hitbox.monitoring = false
 		hitbox_offset = attack_hitbox.position
 		attack_hitbox.body_entered.connect(_on_attack_hitbox_body_entered)
+	if animated_sprite:
+		last_remote_animation = animated_sprite.animation
+		last_remote_flip_h = animated_sprite.flip_h
 	enter_state(current_state)
 
 
 func _physics_process(delta):
+	if not is_multiplayer_authority():
+		_process_remote_visuals()
+		return
 	if neutral_combo_timer > 0.0 and current_state != State.ATTACK:
 		neutral_combo_timer -= delta
 		if neutral_combo_timer <= 0.0:
@@ -269,6 +277,17 @@ func _update_hitbox_side() -> void:
 	attack_hitbox.position.x = -offset_x if animated_sprite.flip_h else offset_x
 
 
+func _process_remote_visuals() -> void:
+	if not animated_sprite:
+		return
+	if animated_sprite.animation != last_remote_animation or not animated_sprite.is_playing():
+		animated_sprite.play(animated_sprite.animation)
+		last_remote_animation = animated_sprite.animation
+	if animated_sprite.flip_h != last_remote_flip_h:
+		last_remote_flip_h = animated_sprite.flip_h
+		_update_hitbox_side()
+
+
 func _input(event) -> void:
 	if not is_multiplayer_authority():
 		return
@@ -438,8 +457,6 @@ func _start_death_cleanup() -> void:
 
 
 func _on_attack_hitbox_body_entered(body: Node) -> void:
-	if current_state != State.ATTACK:
-		return
 	if body == self:
 		return
 	# Only server calculates damage
