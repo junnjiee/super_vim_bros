@@ -747,11 +747,45 @@ func _initiate_absolute_dash(target_x: float):
 
 
 func _fire_projectile(direction: Vector2) -> void:
+	if multiplayer.multiplayer_peer == null:
+		_spawn_projectile_local(direction, _get_projectile_spawn_pos(direction))
+		return
+	if multiplayer.is_server():
+		_broadcast_projectile_spawn(direction)
+	else:
+		_request_projectile_spawn.rpc_id(1, direction)
+
+
+@rpc("any_peer", "reliable")
+func _request_projectile_spawn(direction: Vector2) -> void:
+	if not multiplayer.is_server():
+		return
+	if multiplayer.get_remote_sender_id() != get_multiplayer_authority():
+		return
+	_broadcast_projectile_spawn(direction)
+
+
+func _broadcast_projectile_spawn(direction: Vector2) -> void:
+	var spawn_pos = _get_projectile_spawn_pos(direction)
+	_spawn_projectile.rpc(direction, spawn_pos)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
+	if not _is_server_rpc_sender():
+		return
+	_spawn_projectile_local(direction, spawn_pos)
+
+
+func _spawn_projectile_local(direction: Vector2, spawn_pos: Vector2) -> void:
 	var projectile = PROJECTILE_SCENE.instantiate()
-	var spawn_pos = global_position + direction * dash_unit_size
 	projectile.initialize(direction, self)
 	projectile.global_position = spawn_pos
 	get_parent().add_child(projectile)
+
+
+func _get_projectile_spawn_pos(direction: Vector2) -> Vector2:
+	return global_position + direction * dash_unit_size
 
 
 func apply_damage(amount: int) -> void:
@@ -917,6 +951,36 @@ func _show_damage_number(amount: int) -> void:
 # === INSERT MODE OBSTACLE FUNCTIONS ===
 
 func _create_obstacle_at_cursor(letter: String) -> void:
+	if multiplayer.multiplayer_peer == null:
+		_create_obstacle_at_cursor_local(letter)
+		return
+	if multiplayer.is_server():
+		_broadcast_obstacle_spawn(letter)
+	else:
+		_request_obstacle_spawn.rpc_id(1, letter)
+
+
+@rpc("any_peer", "reliable")
+func _request_obstacle_spawn(letter: String) -> void:
+	if not multiplayer.is_server():
+		return
+	if multiplayer.get_remote_sender_id() != get_multiplayer_authority():
+		return
+	_broadcast_obstacle_spawn(letter)
+
+
+func _broadcast_obstacle_spawn(letter: String) -> void:
+	_spawn_obstacle.rpc(letter)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func _spawn_obstacle(letter: String) -> void:
+	if not _is_server_rpc_sender():
+		return
+	_create_obstacle_at_cursor_local(letter)
+
+
+func _create_obstacle_at_cursor_local(letter: String) -> void:
 	# Clean up any expired obstacles first
 	_remove_invalid_obstacles()
 
@@ -992,3 +1056,12 @@ func _remove_invalid_obstacles() -> void:
 			insert_obstacles.remove_at(i)
 		else:
 			i += 1
+
+
+func _is_server_rpc_sender() -> bool:
+	if multiplayer.multiplayer_peer == null:
+		return true
+	var sender_id = multiplayer.get_remote_sender_id()
+	if sender_id == 0:
+		return multiplayer.is_server()
+	return sender_id == 1
