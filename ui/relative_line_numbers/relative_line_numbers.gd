@@ -44,14 +44,7 @@ func _ready():
 
 func _find_player():
 	var players = get_tree().get_nodes_in_group("player")
-	# Find the local player (the one with multiplayer authority)
-	for p in players:
-		if p.is_multiplayer_authority():
-			player = p
-			break
-
-	# Fallback to first player if no authority found (single player mode)
-	if not player and players.size() > 0:
+	if players.size() > 0:
 		player = players[0]
 
 	# Try to find camera

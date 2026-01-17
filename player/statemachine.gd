@@ -51,10 +51,6 @@ signal health_changed(current: int, max: int)
 signal died
 
 
-func is_local_player() -> bool:
-	return is_multiplayer_authority()
-
-
 func _ready():
 	# Add player to group for easy lookup
 	add_to_group("player")
@@ -253,9 +249,6 @@ func state_dash(delta):
 # === HELPER FUNCTIONS ===
 
 func get_input_direction(delta) -> Vector2:
-	if not is_multiplayer_authority():
-		return Vector2.ZERO
-
 	var direction = Vector2.ZERO
 	if not input_enabled:
 		return direction
@@ -275,8 +268,6 @@ func _update_hitbox_side() -> void:
 
 
 func _input(event) -> void:
-	if not is_multiplayer_authority():
-		return
 	if not input_enabled:
 		return
 	if not (event is InputEventKey):
@@ -400,11 +391,6 @@ func _initiate_dash(direction: Vector2, count: int, is_vertical: bool):
 			animated_sprite.flip_h = direction.x < 0
 
 
-@rpc("authority", "call_local", "reliable")
-func network_apply_damage(amount: int):
-	apply_damage(amount)
-
-
 func apply_damage(amount: int) -> void:
 	if amount <= 0:
 		return
@@ -447,10 +433,7 @@ func _on_attack_hitbox_body_entered(body: Node) -> void:
 		return
 	if body == self:
 		return
-	# Only server calculates damage
-	if not multiplayer.is_server():
-		return
-	if body.has_method("network_apply_damage"):
-		body.network_apply_damage.rpc(10)
+	if body.has_method("apply_damage"):
+		body.apply_damage(10)
 
 		
