@@ -560,7 +560,7 @@ func _update_attack_hitbox_center() -> void:
 func _process_remote_visuals() -> void:
 	if not animated_sprite:
 		return
-	if animated_sprite.animation != last_remote_animation or not animated_sprite.is_playing():
+	if animated_sprite.animation != last_remote_animation:
 		animated_sprite.play(animated_sprite.animation)
 		last_remote_animation = animated_sprite.animation
 	if animated_sprite.flip_h != last_remote_flip_h:
