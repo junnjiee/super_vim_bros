@@ -40,12 +40,14 @@ var current_state: State = State.IDLE
 @onready var block_bubble: Polygon2D = $BlockBubble
 @onready var neutral_attack_sfx: AudioStreamPlayer = $NeutralAttackSfx
 var _health: int = 0
+var _last_health_reported: int = -1
+var _last_max_health_reported: int = -1
 var health: int:
 	set(value):
 		if value == _health:
 			return
 		_health = value
-		emit_signal("health_changed", _health, max_health)
+		_emit_health_changed_if_needed()
 	get:
 		return _health
 var invulnerable := false
@@ -112,6 +114,7 @@ func _ready():
 
 
 func _physics_process(delta):
+	_emit_health_changed_if_needed()
 	if not _is_local_authority():
 		_process_remote_visuals()
 		return
@@ -948,6 +951,14 @@ func _show_damage_number(amount: int) -> void:
 	tween.tween_property(label, "position", start_pos + Vector2(0, -dash_unit_size * 0.5), 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(label, "modulate:a", 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.finished.connect(label.queue_free)
+
+
+func _emit_health_changed_if_needed() -> void:
+	if _health == _last_health_reported and max_health == _last_max_health_reported:
+		return
+	_last_health_reported = _health
+	_last_max_health_reported = max_health
+	emit_signal("health_changed", _health, max_health)
 
 
 func _apply_damage_to_target(body: Node, amount: int) -> void:
