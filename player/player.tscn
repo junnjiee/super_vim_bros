@@ -1,7 +1,7 @@
 [gd_scene load_steps=21 format=3 uid="uid://c1sysexv5j6v0"]
 
+[ext_resource type="Script" uid="uid://58k02lr4ccy0" path="res://player/statemachine.gd" id="1_g1dw6"]
 [ext_resource type="Texture2D" uid="uid://d2m4jfpo5eu8c" path="res://sprites/character-pack-1/Animations/Walking.png" id="1_oul6g"]
-[ext_resource type="Script" uid="uid://dr5g0gqi0bq5k" path="res://player/player.gd" id="1_rkbax"]
 [ext_resource type="Texture2D" uid="uid://bxdnjdx8x1guy" path="res://sprites/character-pack-3/Animations/Stealth_Mode.png" id="3_yw30f"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_wodsf"]
@@ -173,7 +173,7 @@ _data = {
 
 [node name="CharacterBody2D" type="CharacterBody2D"]
 position = Vector2(-19, 0)
-script = ExtResource("1_rkbax")
+script = ExtResource("1_g1dw6")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_g1dw6")
