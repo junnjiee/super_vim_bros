@@ -6,19 +6,18 @@
 [ext_resource type="Texture2D" uid="uid://c78tnqeusd0v5" path="res://sprites/character-pack-2/Animations/Slide_Attack.png" id="2_ebec5"]
 [ext_resource type="AudioStream" uid="uid://b4rd56aellvvk" path="res://sounds/quick_punch.mp3" id="2_quick_punch"]
 [ext_resource type="Texture2D" uid="uid://33srssp0ipav" path="res://sprites/character-pack-3/Animations/Death.png" id="3_hg6s5"]
+[ext_resource type="AudioStream" uid="uid://dxrcsvhvno0mc" path="res://sounds/jump.mp3" id="3_jump_sfx"]
 [ext_resource type="Texture2D" uid="uid://bv8kq30oljbgw" path="res://sprites/character-pack-1/Animations/Jump witn Strike.png" id="3_yllr7"]
 [ext_resource type="Texture2D" uid="uid://bxdnjdx8x1guy" path="res://sprites/character-pack-3/Animations/Stealth_Mode.png" id="3_yw30f"]
 [ext_resource type="Texture2D" uid="uid://cfa5n55rh4p4o" path="res://sprites/character-pack-3/Animations/Teleport_Character_2.png" id="4_2ieo8"]
 [ext_resource type="Texture2D" uid="uid://dgqfla4gbx5vr" path="res://sprites/character-pack-2/Animations/Protect.png" id="4_kb6p2"]
 [ext_resource type="Texture2D" uid="uid://4b7ucq2k1vkn" path="res://sprites/character-pack-2/Animations/Punch_1.png" id="4_rgyib"]
-[ext_resource type="AudioStream" uid="uid://b4rd56aellvvk" path="res://sounds/quick_punch.mp3" id="2_quick_punch"]
-[ext_resource type="AudioStream" uid="uid://dxrcsvhvno0mc" path="res://sounds/jump.mp3" id="3_jump_sfx"]
 [ext_resource type="AudioStream" uid="uid://c77dqmnooj3dn" path="res://sounds/teleport.mp3" id="4_teleport_sfx"]
-[ext_resource type="AudioStream" uid="uid://djraxpirbhikx" path="res://sounds/slide_dash.mp3" id="5_slide_dash_sfx"]
-[ext_resource type="AudioStream" uid="uid://dfje8y08curxq" path="res://sounds/laser.mp3" id="6_laser_sfx"]
 [ext_resource type="Texture2D" uid="uid://brqe4wckklut4" path="res://sprites/character-pack-1/Animations/Double_Jump.png" id="5_ebec5"]
 [ext_resource type="Texture2D" uid="uid://bfltrdjsvaui4" path="res://sprites/character-pack-2/Animations/Punch_2.png" id="5_hg6s5"]
+[ext_resource type="AudioStream" uid="uid://djraxpirbhikx" path="res://sounds/slide_dash.mp3" id="5_slide_dash_sfx"]
 [ext_resource type="Texture2D" uid="uid://b22re2kti0jf3" path="res://sprites/character-pack-3/Animations/Double_Srtike.png" id="6_8t03j"]
+[ext_resource type="AudioStream" uid="uid://dfje8y08curxq" path="res://sounds/laser.mp3" id="6_laser_sfx"]
 [ext_resource type="Texture2D" uid="uid://fk57n35awhap" path="res://sprites/character-pack-3/Animations/Teleport_Character_1.png" id="10_ebec5"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_jd2rm"]
@@ -734,6 +733,18 @@ polygon = PackedVector2Array(0, 0, 10, 18, -10, 18)
 collision_layer = 2
 monitoring = false
 
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackHitbox"]
+shape = SubResource("RectangleShape2D_attack")
+
+[node name="ColorRect" type="ColorRect" parent="AttackHitbox"]
+visible = false
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+mouse_filter = 2
+color = Color(1, 0.2, 0.2, 0.35)
+
 [node name="NeutralAttackSfx" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("2_quick_punch")
 
@@ -749,19 +760,7 @@ stream = ExtResource("5_slide_dash_sfx")
 [node name="ProjectileSfx" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("6_laser_sfx")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackHitbox"]
-shape = SubResource("RectangleShape2D_attack")
-
-[node name="ColorRect" type="ColorRect" parent="AttackHitbox"]
-visible = false
-offset_left = -32.0
-offset_top = -32.0
-offset_right = 32.0
-offset_bottom = 32.0
-mouse_filter = 2
-color = Color(1, 0.2, 0.2, 0.35)
-
-[node name="NeutralAttackSfx" type="AudioStreamPlayer" parent="."]
+[node name="NeutralAttackSfx2" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("2_quick_punch")
 
 [node name="CollisionHighlight" type="ColorRect" parent="."]

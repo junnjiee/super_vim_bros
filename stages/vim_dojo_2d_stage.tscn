@@ -66,8 +66,4 @@ spawn_point_2 = NodePath("../SpawnPoint2")
 
 [node name="HUD" parent="." instance=ExtResource("8_hud")]
 
-[node name="dummy" parent="." instance=ExtResource("2_4t1fw")]
-position = Vector2(1000, 0)
-input_enabled = false
-
 [connection signal="singleplayer_requested" from="LobbyUI" to="PlayerSpawner" method="spawn_local_player"]

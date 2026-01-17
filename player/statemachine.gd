@@ -15,7 +15,7 @@ enum State {
 }
 
 @export var speed: float = 300.0
-@export var jump_force := 400.0
+@export var jump_force := 450.0
 @export var max_health: int = 100
 @export var invuln_time := 0.4
 @export var attack_time := 0.2
