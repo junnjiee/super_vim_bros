@@ -22,12 +22,22 @@ func _ready():
 # Host a game on the specified port
 func host_game(port: int = DEFAULT_PORT) -> int:
 	peer = ENetMultiplayerPeer.new()
+	print("DEBUG: Attempting to create server on port ", port)
+	print("DEBUG: Max players: ", MAX_PLAYERS)
+
 	var error = peer.create_server(port, MAX_PLAYERS)
+	print("DEBUG: create_server returned error code: ", error)
+
 	if error != OK:
 		push_error("Failed to create server: " + str(error))
 		return error
 
+	print("DEBUG: Setting multiplayer peer...")
 	multiplayer.multiplayer_peer = peer
+
+	print("DEBUG: Peer state: ", peer.get_connection_status())
+	print("DEBUG: Is server: ", multiplayer.is_server())
+	print("DEBUG: Server unique ID: ", multiplayer.get_unique_id())
 	print("Server started on port ", port)
 
 	# Host is also a player, emit signal for host
@@ -53,6 +63,14 @@ func disconnect_from_game() -> void:
 		peer = null
 	multiplayer.multiplayer_peer = null
 	print("Disconnected from game")
+
+# Get the local LAN IP address for hosting
+func get_local_ip() -> String:
+	for ip in IP.get_local_addresses():
+		# Filter for IPv4 LAN addresses (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+		if ip.begins_with("192.168.") or ip.begins_with("10.") or ip.begins_with("172."):
+			return ip
+	return "127.0.0.1"  # Fallback
 
 # Called when a peer connects (server only)
 func _on_peer_connected(id: int) -> void:

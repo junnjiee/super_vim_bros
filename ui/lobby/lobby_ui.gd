@@ -38,7 +38,8 @@ func _on_host_button_pressed():
 		_enable_ui()
 		return
 
-	status_label.text = "Waiting for player..."
+	var local_ip = NetworkManager.get_local_ip()
+	status_label.text = "Waiting for player...\nYour IP: " + local_ip
 
 
 func _on_join_button_pressed():
