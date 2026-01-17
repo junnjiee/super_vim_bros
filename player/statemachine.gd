@@ -9,15 +9,24 @@ enum State {
 
 @export var speed: float = 200.0
 @export var jump_force := 350.0
+@export var max_health: int = 100
+@export var invuln_time := 0.4
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
 var current_state: State = State.IDLE
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
+var health: int = max_health
+var invulnerable := false
+
+signal health_changed(current: int, max: int)
+signal died
 
 
 func _ready():
 	# Enter the initial state
+	health = max_health
+	emit_signal("health_changed", health, max_health)
 	enter_state(current_state)
 
 
@@ -109,5 +118,20 @@ func get_input_direction(delta) -> Vector2:
 		direction.x += 1
 
 	return direction
+
+
+func apply_damage(amount: int) -> void:
+	if amount <= 0:
+		return
+	if invulnerable:
+		return
+	health = max(health - amount, 0)
+	emit_signal("health_changed", health, max_health)
+	if health == 0:
+		emit_signal("died")
+		return
+	invulnerable = true
+	await get_tree().create_timer(invuln_time).timeout
+	invulnerable = false
 
 		
