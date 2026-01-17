@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://djsjomcvsu7ov"]
+[gd_scene load_steps=4 format=3 uid="uid://djsjomcvsu7ov"]
 
 [ext_resource type="Texture2D" uid="uid://ji03rsx4sfxj" path="res://stages/prototype_stage_final.png" id="1_jcl3n"]
 [ext_resource type="PackedScene" uid="uid://c1sysexv5j6v0" path="res://player/player.tscn" id="2_4t1fw"]
+[ext_resource type="PackedScene" path="res://ui/relative_line_numbers/relative_line_numbers.tscn" id="3_relative_numbers"]
 
 [node name="Node 2D" type="Node2D"]
 
@@ -26,7 +27,7 @@ offset_bottom = 424.0
 text = "platform
 "
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." groups=["camera"]]
 position = Vector2(-1262, 335)
 zoom = Vector2(0.7, 0.7)
 limit_left = 0
@@ -41,10 +42,5 @@ editor_draw_limits = true
 editor_draw_drag_margin = true
 
 [node name="CharacterBody2D2" parent="." instance=ExtResource("2_4t1fw")]
-position = Vector2(500, 0)
+position = Vector2(635, 694)
 collision_mask = 2
-
-[node name="CharacterBody2D1" parent="." instance=ExtResource("2_4t1fw")]
-position = Vector2(1000, 0)
-collision_mask = 2
-input_enabled = false

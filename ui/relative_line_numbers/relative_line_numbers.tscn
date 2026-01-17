@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://bqx8y7n5m4r3p"]
+
+[ext_resource type="Script" path="res://ui/relative_line_numbers/relative_line_numbers.gd" id="1_relative_numbers"]
+
+[node name="RelativeLineNumbers" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_relative_numbers")

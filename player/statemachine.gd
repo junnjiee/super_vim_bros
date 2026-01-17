@@ -40,6 +40,8 @@ signal died
 
 
 func _ready():
+	# Add player to group for easy lookup
+	add_to_group("player")
 	# Enter the initial state
 	health = max_health
 	emit_signal("health_changed", health, max_health)
