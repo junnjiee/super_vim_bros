@@ -1,7 +1,7 @@
 extends Area2D
 
 const SPEED = 600.0
-const MAX_RANGE = 800.0
+const MAX_RANGE = 1200.0
 const KNOCKBACK = 280.0
 
 var direction: Vector2 = Vector2.RIGHT

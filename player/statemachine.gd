@@ -42,6 +42,10 @@ var current_state: State = State.IDLE
 @onready var block_bubble: Polygon2D = $BlockBubble
 @onready var head_pointer_shape: Polygon2D = $HeadPointer/PointerShape
 @onready var neutral_attack_sfx: AudioStreamPlayer = $NeutralAttackSfx
+@onready var jump_sfx: AudioStreamPlayer = $JumpSfx
+@onready var dash_sfx: AudioStreamPlayer = $DashSfx
+@onready var dash_attack_sfx: AudioStreamPlayer = $DashAttackSfx
+@onready var projectile_sfx: AudioStreamPlayer = $ProjectileSfx
 var _health: int = 0
 var _last_health_reported: int = -1
 var _last_max_health_reported: int = -1
@@ -151,6 +155,7 @@ func _physics_process(delta):
 		velocity.y += gravity * delta
 	if input_enabled and on_floor and current_state not in [State.ATTACK, State.HITSTUN, State.DEATH, State.DASH, State.INSERT] and Input.is_key_pressed(KEY_K):
 		velocity.y = -jump_force
+		_play_jump_sfx()
 		change_state(State.JUMP)
 
 	# Call the handler for whatever state we're in
@@ -238,7 +243,9 @@ func enter_state(state: State):
 		State.ATTACK:
 			animated_sprite.play(attack_animation)
 			animated_sprite.speed_scale = 1.0
-			if attack_animation.begins_with("neutral_") or attack_animation == "attack_jump":
+			if attack_animation == "attack_dir":
+				_play_dash_attack_sfx()
+			elif attack_animation.begins_with("neutral_") or attack_animation == "attack_jump":
 				_play_neutral_attack_sfx()
 			if attack_hitbox:
 				_configure_attack_hitbox(attack_tiles, attack_direction)
@@ -282,6 +289,7 @@ func enter_state(state: State):
 		State.DASH:
 			animated_sprite.play("disappear")
 			animated_sprite.speed_scale = 3.0
+			_play_dash_sfx()
 			invulnerable = true
 			if attack_hitbox:
 				attack_hitbox.monitoring = false
@@ -492,6 +500,30 @@ func _play_neutral_attack_sfx() -> void:
 	if neutral_attack_sfx:
 		neutral_attack_sfx.stop()
 		neutral_attack_sfx.play()
+
+
+func _play_jump_sfx() -> void:
+	if jump_sfx:
+		jump_sfx.stop()
+		jump_sfx.play()
+
+
+func _play_dash_sfx() -> void:
+	if dash_sfx:
+		dash_sfx.stop()
+		dash_sfx.play()
+
+
+func _play_dash_attack_sfx() -> void:
+	if dash_attack_sfx:
+		dash_attack_sfx.stop()
+		dash_attack_sfx.play()
+
+
+func _play_projectile_sfx() -> void:
+	if projectile_sfx:
+		projectile_sfx.stop()
+		projectile_sfx.play()
 
 
 func _configure_attack_hitbox(tile_count: int, direction: Vector2) -> void:
@@ -810,6 +842,7 @@ func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
 
 
 func _spawn_projectile_local(direction: Vector2, spawn_pos: Vector2) -> void:
+	_play_projectile_sfx()
 	var projectile = PROJECTILE_SCENE.instantiate()
 	if multiplayer.multiplayer_peer != null:
 		projectile.set_multiplayer_authority(get_multiplayer_authority(), true)
