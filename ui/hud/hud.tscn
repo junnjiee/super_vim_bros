@@ -1,0 +1,91 @@
+[gd_scene load_steps=4 format=3 uid="uid://c8vq4n2j3pkwi"]
+
+[ext_resource type="Script" path="res://ui/hud/hud.gd" id="1_hud"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p1_fill"]
+bg_color = Color(0.2, 0.8, 0.2, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p2_fill"]
+bg_color = Color(0.2, 0.8, 0.2, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="HUD" type="CanvasLayer"]
+layer = 11
+script = ExtResource("1_hud")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 80.0
+grow_horizontal = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Player1Container" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="NameLabel" type="Label" parent="MarginContainer/HBoxContainer/Player1Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.2, 1)
+theme_override_font_sizes/font_size = 16
+text = "Player 1"
+
+[node name="HealthBar" type="ProgressBar" parent="MarginContainer/HBoxContainer/Player1Container"]
+custom_minimum_size = Vector2(300, 30)
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_styles/fill = SubResource("StyleBoxFlat_p1_fill")
+
+[node name="HealthText" type="Label" parent="MarginContainer/HBoxContainer/Player1Container"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "100/100"
+horizontal_alignment = 1
+
+[node name="Player2Container" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="NameLabel" type="Label" parent="MarginContainer/HBoxContainer/Player2Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.6, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "Player 2"
+horizontal_alignment = 2
+
+[node name="HealthBar" type="ProgressBar" parent="MarginContainer/HBoxContainer/Player2Container"]
+custom_minimum_size = Vector2(300, 30)
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_styles/fill = SubResource("StyleBoxFlat_p2_fill")
+
+[node name="HealthText" type="Label" parent="MarginContainer/HBoxContainer/Player2Container"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "100/100"
+horizontal_alignment = 1
