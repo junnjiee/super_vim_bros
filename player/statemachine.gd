@@ -20,6 +20,7 @@ enum State {
 @export var invuln_time := 0.4
 @export var attack_time := 0.2
 @export var input_buffer_time := 0.25
+@export var count_timeout := 5.0
 @export var d_command_timeout := 4.0
 @export var input_enabled := true
 @export var dash_unit_size: int = 64
@@ -602,7 +603,7 @@ func _input(event) -> void:
 		if pending_count.length() < 2:
 			var digit = code - KEY_0
 			pending_count += str(digit)
-			pending_count_timer = input_buffer_time
+			pending_count_timer = count_timeout
 		return
 
 	# Movement key detection with count
