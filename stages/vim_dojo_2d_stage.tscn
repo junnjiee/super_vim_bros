@@ -1,22 +1,19 @@
-[gd_scene load_steps=2 format=3 uid="uid://djsjomcvsu7ov"]
+[gd_scene load_steps=3 format=3 uid="uid://djsjomcvsu7ov"]
 
 [ext_resource type="Texture2D" uid="uid://ji03rsx4sfxj" path="res://stages/prototype_stage_final.png" id="1_jcl3n"]
-
-[ext_resource type="Texture2D" uid="uid://d2m4jfpo5eu8c" path="res://sprites/character-pack-1/Animations/Walking.png" id="1_jcl3n"]
+[ext_resource type="Texture2D" uid="uid://d2m4jfpo5eu8c" path="res://sprites/character-pack-1/Animations/Walking.png" id="2_4t1fw"]
 
 [node name="CharacterBody2D" type="CharacterBody2D"]
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("1_jcl3n")
-hframes = 12
-frame = 3
 
 [node name="PrototypeStageFinal" type="Sprite2D" parent="."]
 position = Vector2(960, 540)
 scale = Vector2(1.2, 1.2)
 texture = ExtResource("1_jcl3n")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_4t1fw")
+hframes = 12
+frame = 3
 
 [node name="platform" type="StaticBody2D" parent="."]
 position = Vector2(263, 474)
