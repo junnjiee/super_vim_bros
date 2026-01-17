@@ -304,7 +304,10 @@ func exit_state(state: State):
 		State.WALK:
 			pass
 		State.ATTACK:
-			pass
+			# Kill attack travel tween when exiting ATTACK to prevent position conflicts
+			if attack_travel_tween and attack_travel_tween.is_valid():
+				attack_travel_tween.kill()
+				attack_travel_tween = null
 		State.BLOCK:
 			pass
 		State.HITSTUN:
@@ -312,7 +315,10 @@ func exit_state(state: State):
 		State.DEATH:
 			pass
 		State.DASH:
-			pass  # Nothing to clean up
+			# Re-enable collision if interrupted mid-dash
+			if collision_polygon:
+				collision_polygon.disabled = false
+			invulnerable = false
 		State.INSERT:
 			animated_sprite.modulate = Color(1.0, 1.0, 1.0)  # Reset color
 			in_insert_mode = false
@@ -836,12 +842,14 @@ func _start_hitstun_recovery() -> void:
 
 func _start_attack_recovery() -> void:
 	var finished = await animated_sprite.animation_finished
-	if current_state == State.ATTACK:
-		if attack_hitbox:
-			attack_hitbox.monitoring = false
-		if attack_travel_tween and attack_travel_tween.is_valid():
-			attack_travel_tween.kill()
-			attack_travel_tween = null
+	if current_state != State.ATTACK:
+		# State changed during attack (e.g., player initiated a dash), don't interfere
+		return
+	if attack_hitbox:
+		attack_hitbox.monitoring = false
+	if attack_travel_tween and attack_travel_tween.is_valid():
+		attack_travel_tween.kill()
+		attack_travel_tween = null
 	if hitbox_highlight:
 		hitbox_highlight.visible = false
 	change_state(State.IDLE)
