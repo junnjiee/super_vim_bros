@@ -1,15 +1,19 @@
 extends CanvasLayer
 
+signal singleplayer_requested
+
 @onready var ip_input: LineEdit = $Panel/VBoxContainer/IPInput
 @onready var port_input: LineEdit = $Panel/VBoxContainer/PortInput
 @onready var host_button: Button = $Panel/VBoxContainer/HostButton
 @onready var join_button: Button = $Panel/VBoxContainer/JoinButton
+@onready var singleplayer_button: Button = $Panel/VBoxContainer/SingleplayerButton
 @onready var status_label: Label = $Panel/VBoxContainer/StatusLabel
 
 func _ready():
 	# Connect button signals
 	host_button.pressed.connect(_on_host_button_pressed)
 	join_button.pressed.connect(_on_join_button_pressed)
+	singleplayer_button.pressed.connect(_on_singleplayer_button_pressed)
 
 	# Connect to NetworkManager signals
 	NetworkManager.player_connected.connect(_on_player_connected)
@@ -103,3 +107,9 @@ func _enable_ui():
 	join_button.disabled = false
 	ip_input.editable = true
 	port_input.editable = true
+
+
+func _on_singleplayer_button_pressed():
+	status_label.text = "Starting singleplayer..."
+	singleplayer_requested.emit()
+	hide()

@@ -83,7 +83,7 @@ func _ready():
 
 
 func _physics_process(delta):
-	if not is_multiplayer_authority():
+	if not _is_local_authority():
 		_process_remote_visuals()
 		return
 	if neutral_combo_timer > 0.0 and current_state != State.ATTACK:
@@ -338,9 +338,16 @@ func state_fall(_delta):
 
 # === HELPER FUNCTIONS ===
 
+func _is_local_authority() -> bool:
+	# If no multiplayer peer, we're in singleplayer - always have authority
+	if multiplayer.multiplayer_peer == null:
+		return true
+	return is_multiplayer_authority()
+
+
 func get_input_direction(delta) -> Vector2:
 	var direction = Vector2.ZERO
-	if not is_multiplayer_authority():
+	if not _is_local_authority():
 		return Vector2.ZERO
 	if not input_enabled:
 		return direction
@@ -426,7 +433,7 @@ func _process_remote_visuals() -> void:
 
 
 func _input(event) -> void:
-	if not is_multiplayer_authority():
+	if not _is_local_authority():
 		return
 	if not input_enabled:
 		return
@@ -662,11 +669,15 @@ func _start_death_cleanup() -> void:
 func _on_attack_hitbox_body_entered(body: Node) -> void:
 	if body == self:
 		return
-	# Only server calculates damage
-	if not multiplayer.is_server():
-		return
-	if body.has_method("network_apply_damage"):
-		body.network_apply_damage.rpc(10)
+	# Check if we should handle damage locally
+	if multiplayer.multiplayer_peer == null:
+		# Singleplayer mode - apply damage directly
+		if body.has_method("apply_damage"):
+			body.apply_damage(10)
+	elif multiplayer.is_server():
+		# Multiplayer mode - use RPC
+		if body.has_method("network_apply_damage"):
+			body.network_apply_damage.rpc(10)
 
 
 func _show_damage_number(amount: int) -> void:

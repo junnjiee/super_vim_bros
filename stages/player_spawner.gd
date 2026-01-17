@@ -85,3 +85,22 @@ func _despawn_player(peer_id: int) -> void:
 		player.queue_free()
 	spawned_players.erase(peer_id)
 	print("Player removed for peer ", peer_id)
+
+
+func spawn_local_player() -> void:
+	if not player_scene:
+		push_error("Player scene not set")
+		return
+
+	var spawn_point = get_node(spawn_point_1) as Node2D
+	if not spawn_point:
+		push_error("Spawn point not found")
+		return
+
+	var player = player_scene.instantiate()
+	player.name = "Player_Local"
+	player.global_position = spawn_point.global_position
+	# Authority defaults to 1 when no peer exists
+	get_parent().add_child(player)
+	spawned_players[1] = player
+	print("Local player spawned at ", spawn_point.global_position)

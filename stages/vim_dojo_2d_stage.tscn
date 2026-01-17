@@ -83,3 +83,5 @@ script = ExtResource("7_oob")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="OutOfBounds"]
 shape = SubResource("RectangleShape2D_oob")
+
+[connection signal="singleplayer_requested" from="LobbyUI" to="PlayerSpawner" method="spawn_local_player"]
