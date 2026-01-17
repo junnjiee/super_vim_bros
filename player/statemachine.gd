@@ -4,6 +4,8 @@ extends CharacterBody2D
 enum State {
 	IDLE,
 	WALK,
+	JUMP,
+	FALL,
 	ATTACK,
 	HITSTUN,
 	DEATH,
@@ -17,16 +19,19 @@ enum State {
 @export var attack_time := 0.2
 @export var input_buffer_time := 0.25
 @export var input_enabled := true
-@export var dash_speed: float = 800.0
 @export var dash_unit_size: int = 64
+@export var dir_attack_travel_time: float = 0.12
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
 var current_state: State = State.IDLE
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var animation_player: AnimationPlayer = $AnimatedSprite2D/AnimationPlayer
-@onready var attack_hitbox: Area2D = $AnimatedSprite2D/AttackHitbox
+@onready var attack_hitbox: Area2D = $AttackHitbox
+@onready var attack_shape: CollisionShape2D = $AttackHitbox/CollisionShape2D
+@onready var hitbox_highlight: ColorRect = $AttackHitbox/ColorRect
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
+@onready var collision_highlight: ColorRect = $CollisionHighlight
 var health: int = max_health
 var invulnerable := false
 var pending_d := false
@@ -34,9 +39,9 @@ var pending_d_timer := 0.0
 var attack_direction := Vector2.ZERO
 var attack_requested := false
 var attack_animation := "attack_dir"
+var attack_tiles := 1
 var neutral_combo_step := 0
 var neutral_combo_timer := 0.0
-var hitbox_offset := Vector2.ZERO
 var last_remote_animation: StringName = &""
 var last_remote_flip_h := false
 
@@ -47,7 +52,7 @@ var pending_count_timer: float = 0.0
 # Dash tracking
 var dash_target: Vector2 = Vector2.ZERO
 var dash_direction: Vector2 = Vector2.ZERO
-var dash_remaining_time: float = 0.0
+var attack_travel_tween: Tween = null
 
 signal health_changed(current: int, max: int)
 signal died
@@ -63,11 +68,17 @@ func _ready():
 		animation_player.stop()
 	if attack_hitbox:
 		attack_hitbox.monitoring = false
-		hitbox_offset = attack_hitbox.position
 		attack_hitbox.body_entered.connect(_on_attack_hitbox_body_entered)
 	if animated_sprite:
 		last_remote_animation = animated_sprite.animation
 		last_remote_flip_h = animated_sprite.flip_h
+	if hitbox_highlight:
+		hitbox_highlight.visible = false
+	if collision_highlight:
+		var box_size = _get_collision_box_size()
+		collision_highlight.size = box_size
+		collision_highlight.position = -box_size / 2
+		collision_highlight.visible = true
 	enter_state(current_state)
 
 
@@ -91,11 +102,14 @@ func _physics_process(delta):
 		if pending_count_timer <= 0.0:
 			pending_count = ""
 
-	# Apply vertical physics every frame (skip during horizontal dash)
-	if not is_on_floor() and not (current_state == State.DASH and dash_direction.x != 0):
+	var on_floor = is_on_floor()
+
+	# Apply vertical physics every frame (skip during teleport dash and death)
+	if not on_floor and current_state not in [State.DASH, State.DEATH]:
 		velocity.y += gravity * delta
-	if input_enabled and is_on_floor() and Input.is_key_pressed(KEY_K):
+	if input_enabled and on_floor and current_state not in [State.ATTACK, State.HITSTUN, State.DEATH, State.DASH] and Input.is_key_pressed(KEY_K):
 		velocity.y = -jump_force
+		change_state(State.JUMP)
 
 	# Call the handler for whatever state we're in
 	match current_state:
@@ -103,6 +117,10 @@ func _physics_process(delta):
 			state_idle(delta)
 		State.WALK:
 			state_walk(delta)
+		State.JUMP:
+			state_jump(delta)
+		State.FALL:
+			state_fall(delta)
 		State.ATTACK:
 			state_attack(delta)
 		State.HITSTUN:
@@ -114,6 +132,7 @@ func _physics_process(delta):
 
 	# Apply movement/gravity
 	move_and_slide()
+	_update_collision_highlight()
 
 
 
@@ -134,34 +153,71 @@ func enter_state(state: State):
 	match state:
 		State.IDLE:
 			animated_sprite.play("idle")
+			animated_sprite.speed_scale = 1.0
 			if attack_hitbox:
 				attack_hitbox.monitoring = false
+			if hitbox_highlight:
+				hitbox_highlight.visible = false
 		State.WALK:
 			animated_sprite.play("walk")
+			animated_sprite.speed_scale = 1.0
 			if attack_hitbox:
 				attack_hitbox.monitoring = false
+			if hitbox_highlight:
+				hitbox_highlight.visible = false
+		State.JUMP:
+			animated_sprite.play("jump")
+			animated_sprite.speed_scale = 1.0
+			if attack_hitbox:
+				attack_hitbox.monitoring = false
+			if hitbox_highlight:
+				hitbox_highlight.visible = false
+		State.FALL:
+			animated_sprite.play("falling")
+			animated_sprite.speed_scale = 1.0
+			if attack_hitbox:
+				attack_hitbox.monitoring = false
+			if hitbox_highlight:
+				hitbox_highlight.visible = false
 		State.ATTACK:
 			animated_sprite.play(attack_animation)
+			animated_sprite.speed_scale = 1.0
 			if attack_hitbox:
-				attack_hitbox.monitoring = true
+				_configure_attack_hitbox(attack_tiles, attack_direction)
 			_start_attack_recovery()
 		State.HITSTUN:
 			animated_sprite.play("hit")
+			animated_sprite.speed_scale = 1.0
 			invulnerable = true
 			neutral_combo_step = 0
 			neutral_combo_timer = 0.0
 			if attack_hitbox:
 				attack_hitbox.monitoring = false
+			if hitbox_highlight:
+				hitbox_highlight.visible = false
 			_start_hitstun_recovery()
 		State.DEATH:
 			animated_sprite.play("death")
+			animated_sprite.speed_scale = 1.0
 			input_enabled = false
 			invulnerable = true
 			if attack_hitbox:
 				attack_hitbox.monitoring = false
+			if hitbox_highlight:
+				hitbox_highlight.visible = false
 			_start_death_cleanup()
 		State.DASH:
-			animated_sprite.play("walk")  # Use walk animation for dashing
+			animated_sprite.play("disappear")
+			animated_sprite.speed_scale = 3.0
+			invulnerable = true
+			if attack_hitbox:
+				attack_hitbox.monitoring = false
+			if hitbox_highlight:
+				hitbox_highlight.visible = false
+			if collision_polygon:
+				collision_polygon.disabled = true
+			velocity = Vector2.ZERO
+			_start_dash_sequence()
 
 
 func exit_state(state: State):
@@ -195,6 +251,13 @@ func state_idle(_delta):
 
 	if direction != Vector2.ZERO:
 		change_state(State.WALK)
+		return
+
+	if not is_on_floor():
+		if velocity.y < 0:
+			change_state(State.JUMP)
+		else:
+			change_state(State.FALL)
 
 
 func state_walk(_delta):
@@ -217,15 +280,20 @@ func state_walk(_delta):
 	# Flip sprite based on direction
 	if direction.x != 0:
 		animated_sprite.flip_h = direction.x < 0
-		_update_hitbox_side()
+
+	if not is_on_floor():
+		if velocity.y < 0:
+			change_state(State.JUMP)
+		else:
+			change_state(State.FALL)
 
 
 func state_attack(_delta):
 	# Lock movement while attacking
 	velocity.x = 0.0
+	_update_attack_hitbox_center()
 	if attack_direction.x != 0:
 		animated_sprite.flip_h = attack_direction.x < 0
-		_update_hitbox_side()
 
 
 func state_hitstun(_delta):
@@ -237,21 +305,35 @@ func state_death(_delta):
 	velocity = Vector2.ZERO
 
 
-func state_dash(delta):
-	dash_remaining_time -= delta
+func state_dash(_delta):
+	velocity = Vector2.ZERO
 
-	# Set velocity for collision detection via move_and_slide()
-	if dash_direction.y != 0:
-		velocity.y = dash_direction.y * dash_speed
-		velocity.x = 0
-	else:
-		velocity.x = dash_direction.x * dash_speed
-		velocity.y = 0  # Suspend gravity during horizontal dash
 
-	# End conditions
-	if dash_remaining_time <= 0 or is_on_wall():
-		velocity = Vector2.ZERO
-		change_state(State.IDLE)
+func state_jump(_delta):
+	var direction = get_input_direction(_delta)
+	velocity.x = direction.x * speed
+	if direction.x != 0:
+		animated_sprite.flip_h = direction.x < 0
+	if velocity.y > 0:
+		change_state(State.FALL)
+		return
+	if is_on_floor():
+		if direction == Vector2.ZERO:
+			change_state(State.IDLE)
+		else:
+			change_state(State.WALK)
+
+
+func state_fall(_delta):
+	var direction = get_input_direction(_delta)
+	velocity.x = direction.x * speed
+	if direction.x != 0:
+		animated_sprite.flip_h = direction.x < 0
+	if is_on_floor():
+		if direction == Vector2.ZERO:
+			change_state(State.IDLE)
+		else:
+			change_state(State.WALK)
 
 
 # === HELPER FUNCTIONS ===
@@ -270,11 +352,66 @@ func get_input_direction(delta) -> Vector2:
 	return direction
 
 
-func _update_hitbox_side() -> void:
-	if not attack_hitbox:
+func _configure_attack_hitbox(tile_count: int, direction: Vector2) -> void:
+	if not attack_hitbox or not attack_shape:
 		return
-	var offset_x = abs(hitbox_offset.x)
-	attack_hitbox.position.x = -offset_x if animated_sprite.flip_h else offset_x
+	var shape = attack_shape.shape
+	var forward = direction
+	if forward == Vector2.ZERO:
+		forward = Vector2.LEFT if animated_sprite.flip_h else Vector2.RIGHT
+
+	# Smooth travel for directional attacks (3 tiles only)
+	if tile_count > 2:
+		var target = global_position + forward * dash_unit_size * tile_count
+		var travel_time = _get_animation_length(attack_animation)
+		_start_attack_travel(target, travel_time)
+
+	# Size the hitbox to 1x1 tile for neutral, collision box for directional
+	var box_size = _get_collision_box_size()
+	if tile_count <= 2:
+		box_size = Vector2(dash_unit_size, dash_unit_size)
+	if shape is RectangleShape2D:
+		shape.size = box_size
+
+	var center = Vector2(
+		round(global_position.x / dash_unit_size) * dash_unit_size,
+		round(global_position.y / dash_unit_size) * dash_unit_size
+	)
+	if tile_count <= 2:
+		center.x += forward.x * (dash_unit_size * tile_count)
+
+	attack_hitbox.global_position = center
+	attack_hitbox.monitoring = true
+
+	if hitbox_highlight:
+		hitbox_highlight.visible = true
+		hitbox_highlight.size = box_size
+		hitbox_highlight.position = -hitbox_highlight.size / 2
+
+
+func _update_attack_hitbox_center() -> void:
+	if not attack_hitbox or not attack_shape:
+		return
+	var box_size = _get_collision_box_size()
+	if attack_tiles == 1:
+		box_size = Vector2(dash_unit_size, dash_unit_size)
+	var shape = attack_shape.shape
+	if shape is RectangleShape2D:
+		shape.size = box_size
+	var center = Vector2(
+		round(global_position.x / dash_unit_size) * dash_unit_size,
+		round(global_position.y / dash_unit_size) * dash_unit_size
+	)
+	if attack_tiles == 1:
+		var forward = attack_direction
+		if forward == Vector2.ZERO:
+			forward = Vector2.LEFT if animated_sprite.flip_h else Vector2.RIGHT
+		center.x += forward.x * dash_unit_size
+	attack_hitbox.global_position = center
+	if hitbox_highlight:
+		hitbox_highlight.visible = true
+		hitbox_highlight.size = box_size
+		hitbox_highlight.position = -hitbox_highlight.size / 2
 
 
 func _process_remote_visuals() -> void:
@@ -285,7 +422,7 @@ func _process_remote_visuals() -> void:
 		last_remote_animation = animated_sprite.animation
 	if animated_sprite.flip_h != last_remote_flip_h:
 		last_remote_flip_h = animated_sprite.flip_h
-		_update_hitbox_side()
+		_update_attack_hitbox_center()
 
 
 func _input(event) -> void:
@@ -297,7 +434,7 @@ func _input(event) -> void:
 		return
 	if not event.pressed or event.echo:
 		return
-	if current_state == State.HITSTUN:
+	if current_state in [State.HITSTUN, State.DEATH, State.DASH]:
 		return
 
 	var code = event.keycode
@@ -336,10 +473,17 @@ func _input(event) -> void:
 	if code == KEY_D:
 		if pending_d and pending_d_timer > 0.0:
 			pending_d = false
-			attack_direction = Vector2.ZERO
-			neutral_combo_step = (neutral_combo_step % 3) + 1
-			neutral_combo_timer = input_buffer_time
-			attack_animation = "neutral_%d" % neutral_combo_step
+			attack_direction = Vector2.LEFT if animated_sprite.flip_h else Vector2.RIGHT
+			if is_on_floor():
+				attack_tiles = 1
+				neutral_combo_step = (neutral_combo_step % 3) + 1
+				neutral_combo_timer = input_buffer_time
+				attack_animation = "neutral_%d" % neutral_combo_step
+			else:
+				attack_tiles = 2
+				attack_animation = "attack_jump"
+				neutral_combo_step = 0
+				neutral_combo_timer = 0.0
 			attack_requested = true
 			return
 		pending_d = true
@@ -350,7 +494,8 @@ func _input(event) -> void:
 	if pending_d and pending_d_timer > 0.0:
 		if code == KEY_W:
 			pending_d = false
-			attack_direction = Vector2.LEFT if animated_sprite.flip_h else Vector2.RIGHT
+			attack_direction = Vector2.RIGHT  # absolute front
+			attack_tiles = 3
 			attack_animation = "attack_dir"
 			neutral_combo_step = 0
 			neutral_combo_timer = 0.0
@@ -358,7 +503,8 @@ func _input(event) -> void:
 			return
 		if code == KEY_B:
 			pending_d = false
-			attack_direction = Vector2.RIGHT if animated_sprite.flip_h else Vector2.LEFT
+			attack_direction = Vector2.LEFT  # absolute back
+			attack_tiles = 3
 			attack_animation = "attack_dir"
 			neutral_combo_step = 0
 			neutral_combo_timer = 0.0
@@ -379,39 +525,17 @@ func _initiate_dash(direction: Vector2, count: int, is_vertical: bool):
 	var target = global_position
 
 	if is_vertical:
-		# Vertical movement: teleport to count grids up/down
 		var current_row = round(global_position.y / dash_unit_size)
 		var target_row = current_row + (count * int(direction.y))
 		target.y = target_row * dash_unit_size
 	else:
-		# Horizontal movement: teleport to count grids left/right
 		var current_col = round(global_position.x / dash_unit_size)
 		var target_col = current_col + (count * int(direction.x))
 		target.x = target_col * dash_unit_size
 
-	# Test for collision at target position
-	var original_pos = global_position
-	global_position = target
-
-	# Use move_and_collide to check for collisions
-	var test_motion = PhysicsTestMotionParameters2D.new()
-	test_motion.from = PhysicsServer2D.body_get_state(get_rid(), PhysicsServer2D.BODY_STATE_TRANSFORM)
-	test_motion.motion = Vector2.ZERO
-
-	var result = PhysicsTestMotionResult2D.new()
-	var collision = PhysicsServer2D.body_test_motion(get_rid(), test_motion, result)
-
-	if collision:
-		# Collision detected, revert to original position
-		global_position = original_pos
-		print("Cannot teleport: collision at target position")
-	else:
-		# No collision, teleport successful
-		print("Teleported to: ", global_position)
-
-		# Flip sprite based on horizontal movement
-		if direction.x != 0:
-			animated_sprite.flip_h = direction.x < 0
+	dash_target = target
+	dash_direction = direction
+	change_state(State.DASH)
 
 
 func apply_damage(amount: int) -> void:
@@ -420,6 +544,7 @@ func apply_damage(amount: int) -> void:
 	if invulnerable:
 		return
 	health = max(health - amount, 0)
+	_show_damage_number(amount)
 	emit_signal("health_changed", health, max_health)
 	if health == 0:
 		emit_signal("died")
@@ -442,7 +567,85 @@ func _start_hitstun_recovery() -> void:
 func _start_attack_recovery() -> void:
 	var finished = await animated_sprite.animation_finished
 	if current_state == State.ATTACK:
-		change_state(State.IDLE)
+		if attack_hitbox:
+			attack_hitbox.monitoring = false
+		if attack_travel_tween and attack_travel_tween.is_valid():
+			attack_travel_tween.kill()
+			attack_travel_tween = null
+	if hitbox_highlight:
+		hitbox_highlight.visible = false
+	change_state(State.IDLE)
+
+
+func _start_attack_travel(target: Vector2, travel_time: float) -> void:
+	if attack_travel_tween and attack_travel_tween.is_valid():
+		attack_travel_tween.kill()
+	attack_travel_tween = create_tween()
+	attack_travel_tween.tween_property(self, "global_position", target, travel_time).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _get_animation_length(animation_name: String) -> float:
+	if not animated_sprite or not animated_sprite.sprite_frames:
+		return dir_attack_travel_time
+	if not animated_sprite.sprite_frames.has_animation(animation_name):
+		return dir_attack_travel_time
+	var frames = animated_sprite.sprite_frames.get_frame_count(animation_name)
+	var speed = animated_sprite.sprite_frames.get_animation_speed(animation_name)
+	if speed <= 0:
+		return dir_attack_travel_time
+	return float(frames) / speed
+
+
+func _get_collision_box_size() -> Vector2:
+	if collision_polygon and collision_polygon.polygon.size() > 0:
+		var min_x = INF
+		var max_x = -INF
+		var min_y = INF
+		var max_y = -INF
+		for p in collision_polygon.polygon:
+			min_x = min(min_x, p.x)
+			max_x = max(max_x, p.x)
+			min_y = min(min_y, p.y)
+			max_y = max(max_y, p.y)
+		return Vector2(max_x - min_x, max_y - min_y)
+	return Vector2(dash_unit_size, dash_unit_size)
+
+
+func _update_collision_highlight() -> void:
+	if not collision_highlight:
+		return
+	collision_highlight.position = -collision_highlight.size / 2
+
+
+func _start_dash_sequence() -> void:
+	await animated_sprite.animation_finished  # wait for disappear
+	if current_state != State.DASH:
+		return
+
+	# Teleport to target and reappear
+	global_position = dash_target
+	if dash_direction.x != 0:
+		animated_sprite.flip_h = dash_direction.x < 0
+
+	animated_sprite.speed_scale = 3.0
+	animated_sprite.play("reappear")
+	await animated_sprite.animation_finished
+	if current_state != State.DASH:
+		return
+
+	animated_sprite.speed_scale = 1.0
+	if collision_polygon:
+		collision_polygon.disabled = false
+	invulnerable = false
+
+	if is_on_floor():
+		var direction = get_input_direction(0.0)
+		if direction == Vector2.ZERO:
+			change_state(State.IDLE)
+		else:
+			change_state(State.WALK)
+	else:
+		change_state(State.FALL)
 
 
 func _start_death_cleanup() -> void:
@@ -464,5 +667,21 @@ func _on_attack_hitbox_body_entered(body: Node) -> void:
 		return
 	if body.has_method("network_apply_damage"):
 		body.network_apply_damage.rpc(10)
+
+
+func _show_damage_number(amount: int) -> void:
+	var label = Label.new()
+	label.text = str(amount)
+	label.modulate = Color(1, 0.1, 0.1)
+	label.z_index = 100
+	add_child(label)
+
+	var start_pos = Vector2(0, -dash_unit_size)
+	label.position = start_pos
+
+	var tween = create_tween()
+	tween.tween_property(label, "position", start_pos + Vector2(0, -dash_unit_size * 0.5), 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "modulate:a", 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(label.queue_free)
 
 		

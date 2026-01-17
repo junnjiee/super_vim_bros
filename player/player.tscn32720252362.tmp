@@ -1,11 +1,10 @@
-[gd_scene load_steps=88 format=3 uid="uid://c1sysexv5j6v0"]
+[gd_scene load_steps=83 format=3 uid="uid://c1sysexv5j6v0"]
 
 [ext_resource type="Script" uid="uid://58k02lr4ccy0" path="res://player/statemachine.gd" id="1_g1dw6"]
 [ext_resource type="Texture2D" uid="uid://d2m4jfpo5eu8c" path="res://sprites/character-pack-1/Animations/Walking.png" id="1_oul6g"]
 [ext_resource type="Texture2D" uid="uid://cv6m77btxwg73" path="res://sprites/character-pack-3/Animations/Taking_Damage.png" id="2_boad6"]
 [ext_resource type="Texture2D" uid="uid://c78tnqeusd0v5" path="res://sprites/character-pack-2/Animations/Slide_Attack.png" id="2_ebec5"]
 [ext_resource type="Texture2D" uid="uid://33srssp0ipav" path="res://sprites/character-pack-3/Animations/Death.png" id="3_hg6s5"]
-[ext_resource type="Texture2D" uid="uid://bv8kq30oljbgw" path="res://sprites/character-pack-1/Animations/Jump witn Strike.png" id="3_yllr7"]
 [ext_resource type="Texture2D" uid="uid://bxdnjdx8x1guy" path="res://sprites/character-pack-3/Animations/Stealth_Mode.png" id="3_yw30f"]
 [ext_resource type="Texture2D" uid="uid://cfa5n55rh4p4o" path="res://sprites/character-pack-3/Animations/Teleport_Character_2.png" id="4_2ieo8"]
 [ext_resource type="Texture2D" uid="uid://4b7ucq2k1vkn" path="res://sprites/character-pack-2/Animations/Punch_1.png" id="4_rgyib"]
@@ -37,18 +36,6 @@ region = Rect2(512, 0, 128, 128)
 [sub_resource type="AtlasTexture" id="AtlasTexture_hggc2"]
 atlas = ExtResource("2_ebec5")
 region = Rect2(640, 0, 128, 128)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_b2j0d"]
-atlas = ExtResource("3_yllr7")
-region = Rect2(0, 0, 128, 128)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_7l6ig"]
-atlas = ExtResource("3_yllr7")
-region = Rect2(128, 0, 128, 128)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_j3r50"]
-atlas = ExtResource("3_yllr7")
-region = Rect2(256, 0, 128, 128)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_55jnj"]
 atlas = ExtResource("3_hg6s5")
@@ -309,20 +296,6 @@ animations = [{
 }],
 "loop": false,
 "name": &"attack_dir",
-"speed": 5.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_b2j0d")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_7l6ig")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_j3r50")
-}],
-"loop": false,
-"name": &"attack_jump",
 "speed": 5.0
 }, {
 "frames": [{
@@ -638,33 +611,18 @@ _data = {
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_attack"]
 size = Vector2(32, 20)
 
-[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_sync"]
-properties/0/path = NodePath(".:position")
-properties/0/spawn = true
-properties/0/replication_mode = 1
-properties/1/path = NodePath(".:velocity")
-properties/1/spawn = true
-properties/1/replication_mode = 1
-properties/2/path = NodePath(".:current_state")
-properties/2/spawn = true
-properties/2/replication_mode = 1
-properties/3/path = NodePath(".:health")
-properties/3/spawn = true
-properties/3/replication_mode = 1
-properties/4/path = NodePath("AnimatedSprite2D:flip_h")
-properties/4/spawn = true
-properties/4/replication_mode = 1
-properties/5/path = NodePath("AnimatedSprite2D:animation")
-properties/5/spawn = true
-properties/5/replication_mode = 1
-properties/6/path = NodePath("AttackHitbox:monitoring")
-properties/6/spawn = true
-properties/6/replication_mode = 1
-
 [node name="CharacterBody2D" type="CharacterBody2D"]
 position = Vector2(-19, 0)
-collision_mask = 3
 script = ExtResource("1_g1dw6")
+speed = null
+jump_force = null
+max_health = null
+invuln_time = null
+attack_time = null
+input_buffer_time = null
+input_enabled = null
+dash_unit_size = null
+dir_attack_travel_time = null
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -32)
@@ -705,6 +663,3 @@ color = Color(0, 1, 0, 0.25)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
 polygon = PackedVector2Array(-32, -64, 32, -64, 32, 64, -32, 64)
-
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
-replication_config = SubResource("SceneReplicationConfig_sync")

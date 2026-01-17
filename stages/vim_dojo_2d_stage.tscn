@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://djsjomcvsu7ov"]
+[gd_scene load_steps=8 format=3 uid="uid://djsjomcvsu7ov"]
 
 [ext_resource type="Texture2D" uid="uid://ji03rsx4sfxj" path="res://stages/prototype_stage_final.png" id="1_jcl3n"]
 [ext_resource type="PackedScene" uid="uid://c1sysexv5j6v0" path="res://player/player.tscn" id="2_4t1fw"]
@@ -6,6 +6,10 @@
 [ext_resource type="PackedScene" uid="uid://c8j3k4l5m6n7o8p9" path="res://ui/grid_overlay/grid_overlay.tscn" id="4_grid"]
 [ext_resource type="Script" path="res://stages/player_spawner.gd" id="5_spawner"]
 [ext_resource type="PackedScene" uid="uid://cskj5yqt1mpv1" path="res://ui/lobby/lobby_ui.tscn" id="6_lobby"]
+[ext_resource type="Script" path="res://stages/out_of_bounds.gd" id="7_oob"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_oob"]
+size = Vector2(4000, 200)
 
 [node name="Node 2D" type="Node2D"]
 
@@ -62,3 +66,20 @@ spawn_point_1 = NodePath("../SpawnPoint1")
 spawn_point_2 = NodePath("../SpawnPoint2")
 
 [node name="LobbyUI" parent="." instance=ExtResource("6_lobby")]
+[node name="CharacterBody2D2" parent="." instance=ExtResource("2_4t1fw")]
+position = Vector2(635, 694)
+collision_mask = 2
+
+[node name="CharacterBody2D1" parent="." instance=ExtResource("2_4t1fw")]
+position = Vector2(1000, 694)
+collision_mask = 2
+input_enabled = false
+
+[node name="OutOfBounds" type="Area2D" parent="."]
+position = Vector2(960, 1400)
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("7_oob")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="OutOfBounds"]
+shape = SubResource("RectangleShape2D_oob")
