@@ -39,7 +39,15 @@ var current_state: State = State.IDLE
 @onready var collision_highlight: ColorRect = $CollisionHighlight
 @onready var block_bubble: Polygon2D = $BlockBubble
 @onready var neutral_attack_sfx: AudioStreamPlayer = $NeutralAttackSfx
-var health: int = max_health
+var _health: int = 0
+var health: int:
+	set(value):
+		if value == _health:
+			return
+		_health = value
+		emit_signal("health_changed", _health, max_health)
+	get:
+		return _health
 var invulnerable := false
 var pending_d := false
 var pending_d_timer := 0.0
@@ -83,7 +91,6 @@ func _ready():
 	add_to_group("player")
 	# Enter the initial state
 	health = max_health
-	emit_signal("health_changed", health, max_health)
 	if animation_player:
 		animation_player.stop()
 	if attack_hitbox:
@@ -802,7 +809,6 @@ func apply_damage(amount: int) -> void:
 		amount = int(ceil(amount * 0.5))
 	health = max(health - amount, 0)
 	_show_damage_number(amount)
-	emit_signal("health_changed", health, max_health)
 	if health == 0:
 		emit_signal("died")
 		change_state(State.DEATH)
