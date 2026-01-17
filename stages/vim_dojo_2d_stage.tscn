@@ -50,10 +50,10 @@ editor_draw_limits = true
 editor_draw_drag_margin = true
 
 [node name="SpawnPoint1" type="Marker2D" parent="."]
-position = Vector2(400, 694)
+position = Vector2(400, 600)
 
 [node name="SpawnPoint2" type="Marker2D" parent="."]
-position = Vector2(1500, 694)
+position = Vector2(1500, 600)
 
 [node name="PlayerSpawner" type="Node" parent="."]
 script = ExtResource("5_spawner")
