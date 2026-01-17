@@ -26,7 +26,8 @@ enum State {
 @export var dash_unit_size: int = 64
 @export var dir_attack_travel_time: float = 0.12
 @export var parry_window_time: float = 0.1
-@export var knockback_strength: float = 360.0
+@export var fall_kill_y: float = 1400.0
+@export var knockback_strength: float = 60.0
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
@@ -60,6 +61,7 @@ var attack_direction := Vector2.ZERO
 var attack_requested := false
 var attack_animation := "attack_dir"
 var attack_tiles := 1
+var attack_damage := 10
 var neutral_combo_step := 0
 var neutral_combo_timer := 0.0
 var last_remote_animation: StringName = &""
@@ -177,6 +179,8 @@ func _physics_process(delta):
 	# Apply movement/gravity
 	move_and_slide()
 	_update_collision_highlight()
+	if global_position.y > fall_kill_y and current_state != State.DEATH:
+		apply_damage(9999)
 
 
 
@@ -695,9 +699,11 @@ func _input(event) -> void:
 				neutral_combo_step = (neutral_combo_step % 3) + 1
 				neutral_combo_timer = input_buffer_time
 				attack_animation = "neutral_%d" % neutral_combo_step
+				attack_damage = 5 if neutral_combo_step < 3 else 10
 			else:
 				attack_tiles = 2
 				attack_animation = "attack_jump"
+				attack_damage = 10
 				neutral_combo_step = 0
 				neutral_combo_timer = 0.0
 			attack_requested = true
@@ -713,6 +719,7 @@ func _input(event) -> void:
 			attack_direction = Vector2.RIGHT  # absolute front
 			attack_tiles = 3
 			attack_animation = "attack_dir"
+			attack_damage = 10
 			neutral_combo_step = 0
 			neutral_combo_timer = 0.0
 			attack_requested = true
@@ -722,6 +729,7 @@ func _input(event) -> void:
 			attack_direction = Vector2.LEFT  # absolute back
 			attack_tiles = 3
 			attack_animation = "attack_dir"
+			attack_damage = 10
 			neutral_combo_step = 0
 			neutral_combo_timer = 0.0
 			attack_requested = true
@@ -983,7 +991,7 @@ func _on_attack_hitbox_body_entered(body: Node) -> void:
 	var knockback = Vector2.ZERO
 	if body is Node2D:
 		knockback = _calculate_knockback(body, attack_direction)
-	_apply_damage_to_target(body, 10, knockback)
+	_apply_damage_to_target(body, attack_damage, knockback)
 
 
 func _show_damage_number(amount: int) -> void:
