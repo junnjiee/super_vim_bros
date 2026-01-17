@@ -1,3 +1,9 @@
-[gd_scene format=3 uid="uid://djsjomcvsu7ov"]
+[gd_scene load_steps=2 format=3 uid="uid://djsjomcvsu7ov"]
+
+[ext_resource type="Texture2D" uid="uid://bbdkq1nrfwfd4" path="res://stages/prototype_stage_final.png" id="1_jcl3n"]
 
 [node name="Node2D" type="Node2D"]
+
+[node name="PrototypeStageFinal" type="Sprite2D" parent="."]
+position = Vector2(960, 540)
+texture = ExtResource("1_jcl3n")
