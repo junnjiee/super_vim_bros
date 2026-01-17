@@ -558,6 +558,17 @@ func _input(event) -> void:
 		return
 
 	# Number key detection for count buffering
+	# Vim '0' command: dash to start of platform (x=300)
+	if code == KEY_0 and pending_count == "":
+		_initiate_absolute_dash(300.0)
+		return
+
+	# Vim '$' command (Shift+4): dash to end of platform (x=1550)
+	if code == KEY_4 and event.shift_pressed:
+		_initiate_absolute_dash(1550.0)
+		return
+
+	# Number key detection for count buffering (1-9, or 0 after another digit)
 	if code >= KEY_0 and code <= KEY_9:
 		# Only accumulate if we haven't reached 2 digits
 		if pending_count.length() < 2:
@@ -675,6 +686,16 @@ func _initiate_dash(direction: Vector2, count: int, is_vertical: bool):
 
 	dash_target = target
 	dash_direction = direction
+	change_state(State.DASH)
+
+
+func _initiate_absolute_dash(target_x: float):
+	# Dash to an absolute x position (for 0 and $ commands)
+	var target = global_position
+	target.x = target_x
+
+	dash_target = target
+	dash_direction = Vector2.LEFT if target_x < global_position.x else Vector2.RIGHT
 	change_state(State.DASH)
 
 
