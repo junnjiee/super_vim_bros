@@ -50,5 +50,14 @@ func _show_game_over_screen(winner_peer_id: int, loser_peer_id: int) -> void:
 
 func _on_play_again_requested() -> void:
 	# Reset HUD and respawn players
-	hud.reset_hud()
-	player_spawner.respawn_all_players()
+	# Broadcast HUD reset to all clients first
+	if multiplayer.multiplayer_peer != null:
+		_reset_hud_rpc.rpc()
+	else:
+		await hud.reset_hud()
+	await player_spawner.respawn_all_players()
+
+
+@rpc("authority", "call_local", "reliable")
+func _reset_hud_rpc() -> void:
+	await hud.reset_hud()

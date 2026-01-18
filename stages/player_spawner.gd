@@ -64,7 +64,10 @@ func _spawn_player(peer_id: int, spawn_position: Vector2) -> void:
 	if spawned_players.has(peer_id):
 		var old_player = spawned_players[peer_id]
 		if is_instance_valid(old_player):
+			# Use call_deferred to ensure proper cleanup order
 			old_player.queue_free()
+			# Wait for the old player to be removed before continuing
+			await get_tree().process_frame
 		spawned_players.erase(peer_id)
 
 	if not player_scene:
@@ -158,8 +161,9 @@ func respawn_all_players() -> void:
 	# First, clear all players on all clients
 	_clear_all_players_rpc.rpc()
 
-	# Wait a frame for cleanup to complete
-	await get_tree().process_frame
+	# Wait for cleanup to complete on all clients
+	# Use a small timer to account for network latency and frame processing
+	await get_tree().create_timer(0.1).timeout
 
 	# Respawn server player (peer ID 1)
 	var spawn_point_1_node = get_node(spawn_point_1) as Node2D
@@ -177,3 +181,5 @@ func respawn_all_players() -> void:
 @rpc("authority", "call_local", "reliable")
 func _clear_all_players_rpc() -> void:
 	clear_all_players()
+	# Wait a frame to ensure queue_free() completes
+	await get_tree().process_frame

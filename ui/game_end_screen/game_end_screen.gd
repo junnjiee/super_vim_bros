@@ -89,9 +89,11 @@ func _check_all_voted() -> void:
 		required_votes = 2
 
 	if play_again_votes.size() >= required_votes:
-		# All players voted, trigger respawn
-		await get_tree().create_timer(0.5).timeout
-		play_again_requested.emit()
+		# Only the server (or singleplayer) should trigger respawn to avoid race conditions
+		# Clients will receive the respawn via RPC from the server
+		if multiplayer.multiplayer_peer == null or multiplayer.is_server():
+			await get_tree().create_timer(0.5).timeout
+			play_again_requested.emit()
 		hide_screen()
 
 
