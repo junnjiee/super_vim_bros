@@ -37,6 +37,8 @@ func show_winner(local_won: bool, winner_id: int, loser_id: int) -> void:
 	status_label.text = "Press Play Again to rematch"
 	play_again_button.disabled = false
 	show()
+	if multiplayer.multiplayer_peer != null and multiplayer.is_server():
+		call_deferred("_on_play_again_pressed")
 
 
 func hide_screen() -> void:
