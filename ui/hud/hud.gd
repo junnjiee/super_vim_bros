@@ -27,10 +27,16 @@ func _find_and_connect_players() -> void:
 	var players = get_tree().get_nodes_in_group("player")
 
 	for player in players:
-		if player1 == null:
+		if not is_instance_valid(player):
+			continue
+		# Skip if already connected
+		if player == player1 or player == player2:
+			continue
+		# Check for null OR invalid reference (freed node)
+		if player1 == null or not is_instance_valid(player1):
 			player1 = player
 			_connect_player(player, 1)
-		elif player2 == null:
+		elif player2 == null or not is_instance_valid(player2):
 			player2 = player
 			_connect_player(player, 2)
 		else:
@@ -50,10 +56,11 @@ func _try_connect_player(node: Node) -> void:
 	# Avoid double-connecting
 	if node == player1 or node == player2:
 		return
-	if player1 == null:
+	# Check for null OR invalid reference (freed node)
+	if player1 == null or not is_instance_valid(player1):
 		player1 = node
 		_connect_player(node, 1)
-	elif player2 == null:
+	elif player2 == null or not is_instance_valid(player2):
 		player2 = node
 		_connect_player(node, 2)
 
