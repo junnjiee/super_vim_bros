@@ -121,7 +121,7 @@ func _ready():
 		var box_size = _get_collision_box_size()
 		collision_highlight.size = box_size
 		collision_highlight.position = -box_size / 2
-		collision_highlight.visible = true
+		collision_highlight.visible = false
 	if block_bubble:
 		block_bubble.visible = false
 	_apply_player_color()
@@ -598,11 +598,7 @@ func _configure_attack_hitbox(tile_count: int, direction: Vector2) -> void:
 	attack_hitbox.monitoring = true
 
 	if hitbox_highlight:
-		var show_hitbox = _is_local_authority()
-		hitbox_highlight.visible = show_hitbox
-		if show_hitbox:
-			hitbox_highlight.size = box_size
-			hitbox_highlight.position = -hitbox_highlight.size / 2
+		hitbox_highlight.visible = false
 
 
 func _update_attack_hitbox_center() -> void:
@@ -630,11 +626,7 @@ func _update_attack_hitbox_center() -> void:
 		center.x += forward_air.x * dash_unit_size
 	attack_hitbox.global_position = center
 	if hitbox_highlight:
-		var show_hitbox = _is_local_authority()
-		hitbox_highlight.visible = show_hitbox
-		if show_hitbox:
-			hitbox_highlight.size = box_size
-			hitbox_highlight.position = -hitbox_highlight.size / 2
+		hitbox_highlight.visible = false
 
 
 func _process_remote_visuals() -> void:
