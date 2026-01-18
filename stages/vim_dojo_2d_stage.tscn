@@ -20,6 +20,29 @@ position = Vector2(960, 540)
 scale = Vector2(1.2, 1.2)
 texture = ExtResource("1_jcl3n")
 
+[node name="MovesList" type="Label" parent="."]
+modulate = Color(1, 1, 1, 0.22)
+z_index = 1
+offset_left = 96.0
+offset_top = 96.0
+offset_right = 96.0
+offset_bottom = 96.0
+theme_override_font_sizes/font_size = 18
+text = "moves
+h/l  move
+k    jump
+d d  neutral combo
+d w  dash attack (front)
+d b  dash attack (back)
+d 0  projectile left
+d $  projectile right
+0    dash to start
+$    dash to end
+count + h/l  dash tiles
+i    insert mode
+esc  exit insert
+"
+
 [node name="platform" type="StaticBody2D" parent="."]
 position = Vector2(263, 474)
 collision_layer = 2
@@ -38,7 +61,7 @@ text = "platform
 
 [node name="Camera2D" type="Camera2D" parent="." groups=["camera"]]
 position = Vector2(-1262, 335)
-zoom = Vector2(0.7, 0.7)
+zoom = Vector2(1.2, 1.2)
 limit_left = 0
 limit_top = 1100
 limit_right = 2000

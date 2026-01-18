@@ -17,6 +17,15 @@ func _ready():
 	# Connect to NetworkManager signals
 	NetworkManager.player_connected.connect(_on_player_connected)
 	NetworkManager.player_disconnected.connect(_on_player_disconnected)
+	_spawn_existing_players()
+
+
+func _spawn_existing_players() -> void:
+	if multiplayer.multiplayer_peer == null:
+		return
+	_on_player_connected(1)
+	for peer_id in multiplayer.get_peers():
+		_on_player_connected(peer_id)
 
 
 func _on_player_connected(peer_id: int):

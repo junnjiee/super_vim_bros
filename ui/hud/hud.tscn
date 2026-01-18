@@ -20,6 +20,61 @@ corner_radius_bottom_left = 4
 layer = 11
 script = ExtResource("1_hud")
 
+[node name="WinScreen" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Fade" type="ColorRect" parent="WinScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.45)
+
+[node name="Panel" type="Panel" parent="WinScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -120.0
+offset_right = 180.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="WinScreen/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 14
+
+[node name="WinLabel" type="Label" parent="WinScreen/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Player 1 Wins"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
+
+[node name="RestartButton" type="Button" parent="WinScreen/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Restart"
+
 [node name="MarginContainer" type="MarginContainer" parent="."]
 anchors_preset = 12
 anchor_left = 0.0
