@@ -30,8 +30,12 @@ func _spawn_existing_players() -> void:
 
 
 func _on_player_connected(peer_id: int):
+	print("DEBUG: _on_player_connected called for peer_id: ", peer_id)
+	print("DEBUG: multiplayer.is_server(): ", multiplayer.is_server())
+
 	# Only server handles spawning
 	if not multiplayer.is_server():
+		print("DEBUG: Not server, returning early")
 		return
 
 	if not player_scene:
@@ -54,9 +58,13 @@ func _on_player_connected(peer_id: int):
 
 	# When spawning the host (no peers connected yet), call directly instead of RPC
 	# RPC with call_local can be unreliable when no network peers exist
+	print("DEBUG: get_peers().size() = ", multiplayer.get_peers().size())
+	print("DEBUG: spawned_players.keys() = ", spawned_players.keys())
 	if multiplayer.get_peers().size() == 0:
+		print("DEBUG: Calling _spawn_player directly for peer ", peer_id)
 		_spawn_player(peer_id, spawn_point.global_position)
 	else:
+		print("DEBUG: Calling _spawn_player via RPC for peer ", peer_id)
 		_spawn_player.rpc(peer_id, spawn_point.global_position)
 
 	# Ensure late-joining peers receive already-spawned players (e.g. host).
@@ -77,7 +85,9 @@ func _on_player_disconnected(peer_id: int):
 
 @rpc("authority", "call_local", "reliable")
 func _spawn_player(peer_id: int, spawn_position: Vector2) -> void:
+	print("DEBUG: _spawn_player called for peer_id: ", peer_id, " at position: ", spawn_position)
 	if spawned_players.has(peer_id):
+		print("DEBUG: Player already exists for peer ", peer_id, ", skipping")
 		return
 
 	if not player_scene:
@@ -85,10 +95,11 @@ func _spawn_player(peer_id: int, spawn_position: Vector2) -> void:
 		return
 
 	var player = player_scene.instantiate()
+	print("DEBUG: Player instantiated: ", player)
 	player.name = "Player_%s" % peer_id
-	player.global_position = spawn_position
 	player.set_multiplayer_authority(peer_id, true)
 	get_parent().add_child(player)
+	player.global_position = spawn_position  # Set position AFTER adding to tree
 	spawned_players[peer_id] = player
 	print("Player spawned for peer ", peer_id, " at ", spawn_position)
 
@@ -130,8 +141,8 @@ func spawn_local_player() -> void:
 
 	var player = player_scene.instantiate()
 	player.name = "Player_Local"
-	player.global_position = spawn_point.global_position
 	# Authority defaults to 1 when no peer exists
 	get_parent().add_child(player)
+	player.global_position = spawn_point.global_position  # Set position AFTER adding to tree
 	spawned_players[1] = player
 	print("Local player spawned at ", spawn_point.global_position)
