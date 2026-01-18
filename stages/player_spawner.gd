@@ -118,3 +118,51 @@ func spawn_local_player() -> void:
 	get_parent().add_child(player)
 	spawned_players[1] = player
 	print("Local player spawned at ", spawn_point.global_position)
+
+
+# Clear all spawned players (used before respawning)
+func clear_all_players() -> void:
+	for peer_id in spawned_players.keys():
+		var player = spawned_players[peer_id]
+		if is_instance_valid(player):
+			player.queue_free()
+	spawned_players.clear()
+	print("All players cleared")
+
+
+# Respawn all players - called when both players agree to play again
+func respawn_all_players() -> void:
+	if multiplayer.multiplayer_peer == null:
+		# Singleplayer mode
+		clear_all_players()
+		# Wait a frame for cleanup
+		await get_tree().process_frame
+		spawn_local_player()
+		return
+
+	# Multiplayer mode - only server handles this
+	if not multiplayer.is_server():
+		return
+
+	# First, clear all players on all clients
+	_clear_all_players_rpc.rpc()
+
+	# Wait a frame for cleanup to complete
+	await get_tree().process_frame
+
+	# Respawn server player (peer ID 1)
+	var spawn_point_1_node = get_node(spawn_point_1) as Node2D
+	if spawn_point_1_node:
+		_spawn_player.rpc(1, spawn_point_1_node.global_position)
+
+	# Respawn client players
+	for peer_id in multiplayer.get_peers():
+		if peer_id != 1:
+			var spawn_point_2_node = get_node(spawn_point_2) as Node2D
+			if spawn_point_2_node:
+				_spawn_player.rpc(peer_id, spawn_point_2_node.global_position)
+
+
+@rpc("authority", "call_local", "reliable")
+func _clear_all_players_rpc() -> void:
+	clear_all_players()
