@@ -10,18 +10,19 @@ var spawned_players = {}
 
 func _ready():
 	add_to_group("player_spawner")
-	# Only server spawns players
-	if not multiplayer.is_server():
-		return
-
-	# Connect to NetworkManager signals
+	# Always connect to NetworkManager signals - the handlers will check is_server()
+	# This is necessary because _ready() runs before the multiplayer peer is created,
+	# so is_server() returns false at scene load time
 	NetworkManager.player_connected.connect(_on_player_connected)
 	NetworkManager.player_disconnected.connect(_on_player_disconnected)
+	# Try to spawn existing players (will only work if we're already the server)
 	_spawn_existing_players()
 
 
 func _spawn_existing_players() -> void:
 	if multiplayer.multiplayer_peer == null:
+		return
+	if not multiplayer.is_server():
 		return
 	_on_player_connected(1)
 	for peer_id in multiplayer.get_peers():
