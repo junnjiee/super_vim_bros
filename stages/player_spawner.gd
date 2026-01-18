@@ -60,8 +60,12 @@ func _on_player_disconnected(peer_id: int):
 
 @rpc("authority", "call_local", "reliable")
 func _spawn_player(peer_id: int, spawn_position: Vector2) -> void:
+	# If player already exists, remove the old one first to ensure fresh spawn
 	if spawned_players.has(peer_id):
-		return
+		var old_player = spawned_players[peer_id]
+		if is_instance_valid(old_player):
+			old_player.queue_free()
+		spawned_players.erase(peer_id)
 
 	if not player_scene:
 		push_error("Player scene not set in PlayerSpawner")
@@ -127,6 +131,13 @@ func clear_all_players() -> void:
 		if is_instance_valid(player):
 			player.queue_free()
 	spawned_players.clear()
+
+	# Also clear any players in the group that might not be tracked
+	# (e.g., if despawn timing caused dictionary inconsistency)
+	for player in get_tree().get_nodes_in_group("player"):
+		if is_instance_valid(player):
+			player.queue_free()
+
 	print("All players cleared")
 
 
