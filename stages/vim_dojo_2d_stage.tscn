@@ -55,6 +55,7 @@ position = Vector2(712, 285)
 polygon = PackedVector2Array(-1, 0, -653, 1, -688, 27, -688, 222, 628, 223, 625, 26, 580, -2)
 
 [node name="Label" type="Label" parent="platform"]
+visible = false
 offset_left = 241.0
 offset_top = 375.0
 offset_right = 343.0
