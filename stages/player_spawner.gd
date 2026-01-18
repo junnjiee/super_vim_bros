@@ -51,7 +51,14 @@ func _on_player_connected(peer_id: int):
 		return
 
 	var existing_player_ids = spawned_players.keys()
-	_spawn_player.rpc(peer_id, spawn_point.global_position)
+
+	# When spawning the host (no peers connected yet), call directly instead of RPC
+	# RPC with call_local can be unreliable when no network peers exist
+	if multiplayer.get_peers().size() == 0:
+		_spawn_player(peer_id, spawn_point.global_position)
+	else:
+		_spawn_player.rpc(peer_id, spawn_point.global_position)
+
 	# Ensure late-joining peers receive already-spawned players (e.g. host).
 	for existing_peer_id in existing_player_ids:
 		var existing_player = spawned_players[existing_peer_id]
